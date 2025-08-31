@@ -1,0 +1,28 @@
+{
+  "name": "GSOC Test B — Deterioration Alert",
+  "iterations": 50000,
+  "agg": "weighted",
+  "threshold": 1.6,
+  "factors": [
+    {"name":"Escalation_Risk_P","dist":"PERT","min":0.20,"mode":0.45,"max":0.85,"lambda":4,"weight":1.0,"notes":"Escalation probability under heightened tensions"},
+    {"name":"Ceasefire_Break_P","dist":"Triangular","min":0.10,"mode":0.35,"max":0.70,"weight":1.0,"notes":"Ceasefire fragility"},
+    {"name":"Aid_Delivery_Delay_Days","dist":"PERT","min":5,"mode":14,"max":40,"lambda":4,"weight":0.8,"notes":"Delays increase under access constraints"},
+    {"name":"Route_Disruption_Index","dist":"Uniform","min":0.10,"max":0.80,"weight":0.9,"notes":"More roads affected"},
+    {"name":"Team_Incident_P","dist":"PERT","min":0.04,"mode":0.12,"max":0.30,"lambda":4,"weight":1.0,"notes":"Higher exposure to threats"},
+    {"name":"Intel_Uncertainty","dist":"Normal","mean":0.20,"sd":0.08,"weight":0.6,"notes":"Lower signal quality"},
+    {"name":"Community_BuyIn","dist":"PERT","min":0.15,"mode":0.40,"max":0.75,"lambda":4,"weight":-0.7,"notes":"Weaker cooperation yields less risk reduction"},
+    {"name":"Health_System_Stress","dist":"Triangular","min":0.25,"mode":0.55,"max":0.95,"weight":0.9,"notes":"System overload likely"},
+    {"name":"Border_Clearance_Days","dist":"Triangular","min":3,"mode":8,"max":20,"weight":0.7,"notes":"Longer clearance times"}
+  ],
+  "corr": [
+    [ 1.00, 0.55, 0.30, 0.35, 0.45, 0.25,-0.35, 0.35, 0.20],
+    [ 0.55, 1.00, 0.25, 0.30, 0.40, 0.20,-0.30, 0.30, 0.15],
+    [ 0.30, 0.25, 1.00, 0.50, 0.20, 0.15,-0.15, 0.25, 0.35],
+    [ 0.35, 0.30, 0.50, 1.00, 0.30, 0.15,-0.15, 0.30, 0.25],
+    [ 0.45, 0.40, 0.20, 0.30, 1.00, 0.30,-0.25, 0.30, 0.15],
+    [ 0.25, 0.20, 0.15, 0.15, 0.30, 1.00,-0.20, 0.15, 0.10],
+    [-0.35,-0.30,-0.15,-0.15,-0.25,-0.20, 1.00,-0.20,-0.10],
+    [ 0.35, 0.30, 0.25, 0.30, 0.30, 0.15,-0.20, 1.00, 0.20],
+    [ 0.20, 0.15, 0.35, 0.25, 0.15, 0.10,-0.10, 0.20, 1.00]
+  ]
+}

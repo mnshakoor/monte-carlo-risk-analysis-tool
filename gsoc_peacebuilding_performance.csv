@@ -1,0 +1,10 @@
+# schema: name,dist,mean,sd,min,mode,max,lambda,weight,notes
+Local_BuyIn,PERT,,,,0.35,0.65,0.90,4,0.9,Community support for program activities
+Govt_Coordination,Triangular,,,,0.20,0.50,0.85,,0.7,Interagency and local authority coordination
+Funding_Stability,Normal,0.55,0.18,,,,,0.6,Donor and cashflow reliability
+Spoiler_Activity,PERT,,,,0.05,0.15,0.40,4,-0.8,Actions by armed groups or elites that undermine progress
+Security_Incident_P,PERT,,,,0.01,0.05,0.18,4,-0.7,Probability of security incidents affecting operations
+Mediator_Access,Uniform,,,,0.30,,0.90,,0.5,Access of mediators to key stakeholders
+Social_Cohesion,PERT,,,,0.30,0.60,0.90,4,0.8,Horizontal trust across groups
+Economic_Shock_Index,Triangular,,,,0.00,0.15,0.45,,-0.4,Short-term macro and market instability
+Monitoring_Quality,Triangular,,,,0.40,0.70,0.95,,0.4,Strength of MEL systems and feedback loops

@@ -1,0 +1,28 @@
+{
+  "name": "GSOC Test A — Baseline Stabilization",
+  "iterations": 50000,
+  "agg": "weighted",
+  "threshold": 1.2,
+  "factors": [
+    {"name":"Escalation_Risk_P","dist":"PERT","min":0.08,"mode":0.25,"max":0.60,"lambda":4,"weight":1.0,"notes":"Probability of armed conflict escalation"},
+    {"name":"Ceasefire_Break_P","dist":"Triangular","min":0.05,"mode":0.18,"max":0.50,"weight":0.9,"notes":"Ceasefire breakdown likelihood"},
+    {"name":"Aid_Delivery_Delay_Days","dist":"PERT","min":2,"mode":7,"max":24,"lambda":4,"weight":0.6,"notes":"Delivery delay in days"},
+    {"name":"Route_Disruption_Index","dist":"Uniform","min":0.0,"max":0.5,"weight":0.7,"notes":"Proportion of network affected"},
+    {"name":"Team_Incident_P","dist":"PERT","min":0.01,"mode":0.06,"max":0.20,"lambda":4,"weight":0.8,"notes":"Probability of field team incident"},
+    {"name":"Intel_Uncertainty","dist":"Normal","mean":0.12,"sd":0.05,"weight":0.5,"notes":"Information quality uncertainty"},
+    {"name":"Community_BuyIn","dist":"PERT","min":0.30,"mode":0.60,"max":0.90,"lambda":4,"weight":-0.7,"notes":"Higher reduces total risk with weighted aggregation"},
+    {"name":"Health_System_Stress","dist":"Triangular","min":0.10,"mode":0.35,"max":0.80,"weight":0.7,"notes":"Facility load and shortages"},
+    {"name":"Border_Clearance_Days","dist":"Triangular","min":1,"mode":3,"max":10,"weight":0.5,"notes":"Shipment clearance time"}
+  ],
+  "corr": [
+    [ 1.00, 0.45, 0.20, 0.25, 0.35, 0.20,-0.30, 0.25, 0.15],
+    [ 0.45, 1.00, 0.15, 0.20, 0.30, 0.15,-0.25, 0.20, 0.10],
+    [ 0.20, 0.15, 1.00, 0.40, 0.10, 0.10,-0.10, 0.15, 0.30],
+    [ 0.25, 0.20, 0.40, 1.00, 0.20, 0.10,-0.10, 0.20, 0.20],
+    [ 0.35, 0.30, 0.10, 0.20, 1.00, 0.25,-0.20, 0.25, 0.10],
+    [ 0.20, 0.15, 0.10, 0.10, 0.25, 1.00,-0.15, 0.10, 0.05],
+    [-0.30,-0.25,-0.10,-0.10,-0.20,-0.15, 1.00,-0.15,-0.05],
+    [ 0.25, 0.20, 0.15, 0.20, 0.25, 0.10,-0.15, 1.00, 0.15],
+    [ 0.15, 0.10, 0.30, 0.20, 0.10, 0.05,-0.05, 0.15, 1.00]
+  ]
+}

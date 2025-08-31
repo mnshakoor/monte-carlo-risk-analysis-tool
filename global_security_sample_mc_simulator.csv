@@ -1,0 +1,10 @@
+# schema: name,dist,mean,sd,min,mode,max,lambda,weight,notes
+Escalation_Risk_P,PERT,,,,0.08,0.25,0.60,4,1.0,Probability of armed conflict escalation (0 to 1)
+Ceasefire_Break_P,Triangular,,,,0.05,0.18,0.50,,0.9,Likelihood of ceasefire breakdown in the next 60 days
+Aid_Delivery_Delay_Days,PERT,,,,2,7,24,4,0.6,Expected delivery delay in days due to checkpoints and access
+Route_Disruption_Index,Uniform,,,,0.00,,0.50,,0.7,Road closures and detours as a proportion
+Team_Incident_P,PERT,,,,0.01,0.06,0.20,4,0.8,Probability of a security incident impacting a field team
+Intel_Uncertainty,Normal,0.12,0.05,,,,,0.5,Uncertainty scaling factor for information quality
+Community_BuyIn,PERT,,,,0.30,0.60,0.90,4,-0.7,Higher buy-in reduces overall risk when using weighted aggregation
+Health_System_Stress,Triangular,,,,0.10,0.35,0.80,,0.7,Stress index from facility load and supply shortages
+Border_Clearance_Days,Triangular,,,,1,3,10,,0.5,Average time to clear shipments at border posts

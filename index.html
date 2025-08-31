@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quanta Analytica — Monte Carlo Risk Lab (Conflict & NGO Ops)</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0d1117;
+    --panel:#111826;
+    --text:#e6edf3;
+    --muted:#94a3b8;
+    --accent:#22d3ee;
+    --accent-2:#38bdf8;
+    --ok:#16a34a;
+    --warn:#f59e0b;
+    --bad:#ef4444;
+    --border:#223047;
+    --chip:#1f2937;
+    --input:#0b1220;
+    --card:#0f172a;
+    --shadow: 0 8px 28px rgba(0,0,0,.35);
+  }
+  [data-theme="light"]{
+    --bg:#f6f7fb;
+    --panel:#ffffff;
+    --text:#0b1220;
+    --muted:#4b5563;
+    --accent:#0891b2;
+    --accent-2:#2563eb;
+    --ok:#15803d;
+    --warn:#b45309;
+    --bad:#b91c1c;
+    --border:#e5e7eb;
+    --chip:#eef2ff;
+    --input:#ffffff;
+    --card:#ffffff;
+    --shadow: 0 8px 28px rgba(0,0,0,.08);
+  }
+
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text); font:15px/1.45 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  }
+  .app{
+    display:grid; grid-template-columns: 360px 1fr; gap:18px; padding:18px; box-sizing:border-box;
+  }
+  @media (max-width: 1080px){
+    .app{ grid-template-columns:1fr; }
+  }
+  .panel{
+    background:var(--panel); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow);
+  }
+  .panel h2, .panel h3{ margin:0 0 8px 0; font-weight:700; letter-spacing:.2px; }
+  .panel .hd{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--border); }
+  .panel .bd{ padding:14px 16px; }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .col{ flex:1 1 180px; min-width:160px; }
+  label{ display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
+  input[type="text"], input[type="number"], select, textarea{
+    width:100%; box-sizing:border-box; padding:10px 12px; background:var(--input); color:var(--text);
+    border:1px solid var(--border); border-radius:10px; outline:none;
+  }
+  textarea{ min-height:76px; resize:vertical; }
+  .btn{
+    appearance:none; border:1px solid var(--border); background:linear-gradient(180deg, var(--accent), var(--accent-2));
+    color:#fff; font-weight:700; padding:10px 14px; border-radius:12px; cursor:pointer; box-shadow:var(--shadow);
+  }
+  .btn.secondary{ background:transparent; color:var(--text); border-color:var(--border); }
+  .btn.warn{ background:var(--warn); border-color:transparent; color:#111; }
+  .btn.ghost{ background:transparent; border-color:transparent; color:var(--accent-2); }
+  .btn-group{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .small{ font-size:12px; color:var(--muted); }
+  .chip{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; background:var(--chip); border-radius:999px; border:1px solid var(--border); color:var(--muted); font-size:12px;}
+  .divider{ height:1px; background:var(--border); margin:10px 0; }
+  .tbl{ width:100%; border-collapse:collapse; }
+  .tbl th, .tbl td{ padding:8px 8px; border-bottom:1px solid var(--border); text-align:left; }
+  .tbl th{ font-size:12px; color:var(--muted); font-weight:600; }
+  .section{ margin-bottom:16px; }
+  details{ border:1px dashed var(--border); border-radius:12px; padding:8px 10px; background:transparent; }
+  details summary{ cursor:pointer; font-weight:700; color:var(--accent-2); }
+  .err{ background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.4); color:#fecaca; padding:8px 10px; border-radius:10px; }
+  .success{ background:rgba(16,185,129,.12); border:1px solid rgba(16,185,129,.4); color:#a7f3d0; padding:8px 10px; border-radius:10px; }
+  .grid-2{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+  @media (max-width:900px){ .grid-2{ grid-template-columns: 1fr; } }
+  .grid-3{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px; }
+  @media (max-width:1200px){ .grid-3{ grid-template-columns: 1fr; } }
+  .sticky-actions{ position:sticky; bottom:0; background:linear-gradient(180deg, transparent, var(--panel) 30%); padding:12px 0 4px; }
+  canvas{ max-height:420px; }
+  .footnote{ font-size:11px; color:var(--muted); }
+  .matrix{ overflow:auto; border:1px solid var(--border); border-radius:10px;}
+  .matrix table{ border-collapse:collapse; }
+  .matrix th,.matrix td{ border:1px solid var(--border); padding:6px 8px; text-align:center; white-space:nowrap; }
+  .tag{ padding:3px 8px; background:var(--chip); border:1px solid var(--border); border-radius:8px; font-size:11px; color:var(--muted); }
+  .kbd{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; background:var(--chip); padding:1px 6px; border:1px solid var(--border); border-radius:6px; font-size:12px; color:var(--muted); }
+  .right{ text-align:right; }
+  .center{ text-align:center; }
+</style>
+</head>
+<body data-theme="dark">
+<div class="app">
+  <!-- LEFT: CONFIG -->
+  <aside class="panel" id="cfgPanel">
+    <div class="hd">
+      <h2>Monte Carlo Risk Lab</h2>
+      <div class="btn-group">
+        <button class="btn secondary" id="themeBtn" title="Toggle light or dark theme">Dark Mode</button>
+      </div>
+    </div>
+    <div class="bd">
+      <div id="msg"></div>
+
+      <div class="section">
+        <h3>Scenario</h3>
+        <div class="row">
+          <div class="col">
+            <label>Scenario name</label>
+            <input id="scenarioName" type="text" value="Untitled Scenario">
+          </div>
+          <div class="col">
+            <label>Iterations (1k to 500k)</label>
+            <input id="iterations" type="number" min="1000" max="500000" step="1000" value="50000">
+          </div>
+          <div class="col">
+            <label>Mode</label>
+            <select id="runMode">
+              <option value="quick">Quick mode</option>
+              <option value="full">Full mode</option>
+            </select>
+          </div>
+          <div class="col">
+            <label>Aggregation</label>
+            <select id="aggType">
+              <option value="sum">Sum of factors</option>
+              <option value="average">Average of factors</option>
+              <option value="weighted">Weighted sum (use Weight column)</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <label>Risk threshold for gauge (total outcome)</label>
+            <input id="riskThreshold" type="number" value="1">
+          </div>
+          <div class="col">
+            <label>Percentiles (comma sep)</label>
+            <input id="pctList" type="text" value="5,10,25,50,75,90,95">
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Risk Factors</h3>
+        <div class="small">Each factor is a random variable. Pick distribution and parameters. Weight applies only to Weighted aggregation.</div>
+        <div class="btn-group" style="margin:8px 0 10px">
+          <button class="btn" id="addFactorBtn">Add factor</button>
+          <button class="btn secondary" id="clearFactorsBtn">Clear</button>
+          <select id="presetSelect" title="Load example templates">
+            <option value="">Load preset...</option>
+            <option value="armed">Armed conflict escalation probability</option>
+            <option value="aid">Humanitarian aid delivery delays</option>
+            <option value="security">NGO field team security risk</option>
+            <option value="peace">Peacebuilding intervention success likelihood</option>
+          </select>
+          <button class="btn secondary" id="addPresetBtn" title="Load selected preset">Load</button>
+        </div>
+
+        <div class="matrix section" id="factorTableWrap">
+          <table class="tbl" id="factorTable">
+            <thead>
+              <tr>
+                <th>Factor name</th>
+                <th>Dist</th>
+                <th title="Normal: mean, sd. Triangular: min, mode, max. Uniform: min, max. PERT: min, mode, max, lambda (default 4).">Params</th>
+                <th>Weight</th>
+                <th>Notes</th>
+                <th class="center">Remove</th>
+              </tr>
+            </thead>
+            <tbody id="factorBody"></tbody>
+          </table>
+        </div>
+        <div class="footnote">Tip: Hover on headers for help. You can upload CSV or JSON to populate.</div>
+      </div>
+
+      <div class="section">
+        <h3>Correlation</h3>
+        <div class="small">Set pairwise correlations between -0.9 and 0.9. Leave as 0 for independence. Rank correlation is imposed via Iman-Conover for robust behavior.</div>
+        <div id="corrWrap" class="matrix"></div>
+      </div>
+
+      <div class="section">
+        <h3>Import and Save</h3>
+        <div class="row">
+          <div class="col">
+            <label>Upload CSV or JSON</label>
+            <input type="file" id="fileInput" accept=".csv,.json" />
+          </div>
+          <div class="col">
+            <label>&nbsp;</label>
+            <button class="btn secondary" id="loadFileBtn">Load file</button>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:6px">
+          <div class="col">
+            <label>Local scenarios</label>
+            <select id="savedList"></select>
+          </div>
+          <div class="col">
+            <label>&nbsp;</label>
+            <div class="btn-group">
+              <button class="btn secondary" id="saveScenarioBtn">Save</button>
+              <button class="btn secondary" id="loadScenarioBtn">Load</button>
+              <button class="btn secondary" id="deleteScenarioBtn">Delete</button>
+            </div>
+          </div>
+        </div>
+
+        <details style="margin-top:10px">
+          <summary>CSV schema and sample data</summary>
+          <div class="small" style="margin:8px 0">
+            CSV headers: <span class="kbd">name,dist,mean,sd,min,mode,max,lambda,weight,notes</span><br>
+            Only fill the columns needed for your chosen dist. Unused cells can be blank.
+          </div>
+          <pre style="white-space:pre-wrap; font-size:12px; background:var(--card); border:1px solid var(--border); padding:10px; border-radius:10px; overflow:auto; max-height:220px;">
+# Example CSV for file upload
+# name,dist,mean,sd,min,mode,max,lambda,weight,notes
+Conflict_Esc_Prob,PERT,,,,0.10,0.30,0.80,4,1,Probability of escalation
+Aid_Delay_Days,Triangular,,,,5,12,30,,1,Days of delivery delay
+Team_Security_Incident,Uniform,,,,0.00,,1.00,,1,Incident probability 0 to 1
+Intervention_Success,PERT,,,,0.20,0.55,0.90,4,1,Program success probability
+          </pre>
+        </details>
+      </div>
+
+      <div class="sticky-actions">
+        <div class="btn-group">
+          <button class="btn" id="runBtn">Run simulation</button>
+          <button class="btn secondary" id="addToCompareBtn" title="Store current results for side by side view (up to 3)">Add to compare</button>
+          <span class="chip"><span id="status">Idle</span></span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- RIGHT: RESULTS -->
+  <main class="panel">
+    <div class="hd">
+      <h2>Results & Visuals</h2>
+      <div class="btn-group">
+        <button class="btn secondary" id="exportCsvBtn" title="Export summary to CSV">Export CSV</button>
+        <button class="btn secondary" id="savePngAllBtn" title="Save all charts as PNG">Save PNGs</button>
+      </div>
+    </div>
+    <div class="bd">
+      <div class="grid-2 section">
+        <div>
+          <h3>Summary statistics</h3>
+          <table class="tbl" id="summaryTbl"></table>
+          <div class="footnote">Stats are for the aggregated outcome based on your aggregation choice.</div>
+        </div>
+        <div>
+          <h3>Sensitivity tornado</h3>
+          <canvas id="tornadoChart" height="300"></canvas>
+          <div class="footnote">Bars are Pearson correlations between each factor and the total outcome. Larger absolute value means stronger influence.</div>
+        </div>
+      </div>
+
+      <div class="grid-3 section">
+        <div>
+          <h3>Histogram</h3>
+          <canvas id="histChart"></canvas>
+        </div>
+        <div>
+          <h3>Cumulative curve</h3>
+          <canvas id="cdfChart"></canvas>
+        </div>
+        <div>
+          <h3>Risk gauge</h3>
+          <canvas id="gaugeChart" height="300"></canvas>
+          <div class="footnote">Gauge shows probability the outcome exceeds the threshold.</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Multi scenario comparison</h3>
+        <div class="btn-group" style="margin:6px 0 10px">
+          <button class="btn secondary" id="clearCompareBtn">Clear stored scenarios</button>
+        </div>
+        <div class="grid-2">
+          <div>
+            <canvas id="compareChart"></canvas>
+          </div>
+          <div>
+            <table class="tbl" id="compareTbl"></table>
+          </div>
+        </div>
+        <div class="footnote">Overlay chart shows CDFs for up to three stored scenarios.</div>
+      </div>
+
+      <div class="section">
+        <h3>Batch parameter sweep</h3>
+        <div class="row">
+          <div class="col">
+            <label>Select factor</label>
+            <select id="sweepFactor"></select>
+          </div>
+          <div class="col">
+            <label>Parameter</label>
+            <select id="sweepParam">
+              <option value="mean">mean</option>
+              <option value="sd">sd</option>
+              <option value="min">min</option>
+              <option value="mode">mode</option>
+              <option value="max">max</option>
+              <option value="lambda">lambda</option>
+            </select>
+          </div>
+          <div class="col">
+            <label>Start</label>
+            <input id="sweepStart" type="number" value="0.1">
+          </div>
+          <div class="col">
+            <label>End</label>
+            <input id="sweepEnd" type="number" value="0.9">
+          </div>
+          <div class="col">
+            <label>Steps</label>
+            <input id="sweepSteps" type="number" min="2" max="50" value="8">
+          </div>
+          <div class="col">
+            <label>Iterations per step</label>
+            <input id="sweepIterations" type="number" min="2000" max="100000" value="10000">
+          </div>
+          <div class="col">
+            <label>Metric</label>
+            <select id="sweepMetric">
+              <option value="mean">mean</option>
+              <option value="p90">p90</option>
+              <option value="p95">p95</option>
+              <option value="median">median</option>
+              <option value="std">std</option>
+            </select>
+          </div>
+        </div>
+        <div class="btn-group" style="margin-top:8px">
+          <button class="btn" id="runSweepBtn">Run sweep</button>
+          <span class="chip" id="sweepStatus">Idle</span>
+        </div>
+        <div class="grid-2" style="margin-top:12px">
+          <div><canvas id="sweepChart"></canvas></div>
+          <div>
+            <table class="tbl" id="sweepTbl"></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+/* ==========================================================
+   Monte Carlo Risk Lab
+   All client side. No external deps except Chart.js.
+   Key features:
+   - Manual and file driven inputs
+   - Normal, Triangular, Uniform, PERT
+   - Correlation via Iman-Conover rank mapping
+   - Sensitivity via Pearson r
+   - Histogram, CDF, Gauge, Tornado, Compare
+   - Presets, Save/Load, Exports, Sweep
+   ========================================================== */
+
+/* ----------------------------- Utilities ----------------------------- */
+const $ = sel => document.querySelector(sel);
+const $$ = sel => Array.from(document.querySelectorAll(sel));
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const rnd = (n, d=2) => Number(n).toFixed(d);
+const parseNums = s => s.split(",").map(x=>Number(x.trim())).filter(x=>!isNaN(x));
+
+function showMsg(html, kind="success"){
+  const m = $("#msg"); if(!m) return;
+  m.innerHTML = `<div class="${kind}">${html}</div>`;
+  setTimeout(()=>{ if(m.innerHTML.includes(html)) m.innerHTML=""; }, 6000);
+}
+
+/* Theme */
+$("#themeBtn").addEventListener("click", ()=>{
+  const root = document.body;
+  const isDark = root.getAttribute("data-theme")==="dark";
+  root.setAttribute("data-theme", isDark ? "light" : "dark");
+  $("#themeBtn").textContent = isDark ? "Light Mode" : "Dark Mode";
+});
+
+/* ----------------------------- Factor Rows ----------------------------- */
+const factorBody = $("#factorBody");
+function newFactorRow(f={name:"Factor_"+(factorBody.children.length+1), dist:"PERT", mean:"", sd:"", min:"", mode:"", max:"", lambda:"4", weight:"1", notes:""}){
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td><input type="text" value="${f.name||""}" class="f-name"></td>
+    <td>
+      <select class="f-dist">
+        <option ${f.dist==="Normal"?"selected":""}>Normal</option>
+        <option ${f.dist==="Triangular"?"selected":""}>Triangular</option>
+        <option ${f.dist==="Uniform"?"selected":""}>Uniform</option>
+        <option ${f.dist==="PERT"?"selected":""}>PERT</option>
+      </select>
+    </td>
+    <td>
+      <div class="row">
+        <input class="f-mean col" type="number" step="any" placeholder="mean" value="${f.mean??""}">
+        <input class="f-sd col" type="number" step="any" placeholder="sd" value="${f.sd??""}">
+        <input class="f-min col" type="number" step="any" placeholder="min" value="${f.min??""}">
+        <input class="f-mode col" type="number" step="any" placeholder="mode" value="${f.mode??""}">
+        <input class="f-max col" type="number" step="any" placeholder="max" value="${f.max??""}">
+        <input class="f-lambda col" type="number" step="any" placeholder="lambda" value="${f.lambda??""}">
+      </div>
+    </td>
+    <td><input class="f-weight" type="number" step="any" value="${f.weight??1}"></td>
+    <td><input class="f-notes" type="text" value="${f.notes??""}"></td>
+    <td class="center"><button class="btn secondary btn-del">✖</button></td>
+  `;
+  tr.querySelector(".btn-del").addEventListener("click", ()=>{ tr.remove(); buildCorrMatrix(); refreshSweepFactorList(); });
+  factorBody.appendChild(tr);
+  buildCorrMatrix();
+  refreshSweepFactorList();
+}
+$("#addFactorBtn").addEventListener("click", ()=> newFactorRow());
+$("#clearFactorsBtn").addEventListener("click", ()=>{ factorBody.innerHTML=""; buildCorrMatrix(); refreshSweepFactorList(); });
+
+/* ----------------------------- Presets ----------------------------- */
+const PRESETS = {
+  armed: {
+    name:"Armed Conflict Escalation",
+    iterations:50000, agg:"sum", threshold:1,
+    factors:[
+      {name:"Escalation_Prob", dist:"PERT", min:0.1, mode:0.35, max:0.8, lambda:4, weight:1, notes:"Probability of escalation (0 to 1)"},
+      {name:"Refugee_Spillover", dist:"Triangular", min:0, mode:0.2, max:0.7, weight:1, notes:"Regional spillover risk (0 to 1)"},
+      {name:"Supply_Disruption", dist:"Normal", mean:0.4, sd:0.12, weight:1, notes:"Supply impact proportion"},
+    ],
+    corr:[[1,0.4,0.35],[0.4,1,0.25],[0.35,0.25,1]]
+  },
+  aid: {
+    name:"Humanitarian Aid Delivery Delays",
+    iterations:50000, agg:"sum", threshold:25,
+    factors:[
+      {name:"Border_Clearance_Days", dist:"Triangular", min:2, mode:5, max:15, weight:1},
+      {name:"Route_Disruption_Days", dist:"PERT", min:0, mode:4, max:20, lambda:4, weight:1},
+      {name:"Warehouse_Backlog_Days", dist:"Normal", mean:3, sd:1.5, weight:1},
+    ],
+    corr:[[1,0.3,0.2],[0.3,1,0.25],[0.2,0.25,1]]
+  },
+  security: {
+    name:"NGO Field Team Security Risk",
+    iterations:50000, agg:"weighted", threshold:0.8,
+    factors:[
+      {name:"Incident_Prob", dist:"PERT", min:0.02, mode:0.08, max:0.25, lambda:4, weight:0.6},
+      {name:"Mobility_Restriction", dist:"Uniform", min:0.05, max:0.4, weight:0.3},
+      {name:"Intel_Uncertainty", dist:"Normal", mean:0.15, sd:0.07, weight:0.1},
+    ],
+    corr:[[1,0.35,0.2],[0.35,1,0.15],[0.2,0.15,1]]
+  },
+  peace: {
+    name:"Peacebuilding Intervention Success",
+    iterations:50000, agg:"average", threshold:0.6,
+    factors:[
+      {name:"Local_BuyIn", dist:"PERT", min:0.2, mode:0.55, max:0.9, lambda:4, weight:1},
+      {name:"Govt_Coordination", dist:"Triangular", min:0.1, mode:0.45, max:0.8, weight:1},
+      {name:"Funding_Stability", dist:"Normal", mean:0.5, sd:0.18, weight:1},
+    ],
+    corr:[[1,0.45,0.3],[0.45,1,0.25],[0.3,0.25,1]]
+  }
+};
+$("#addPresetBtn").addEventListener("click", ()=>{
+  const key = $("#presetSelect").value;
+  if(!key){ showMsg("Select a preset first.", "err"); return; }
+  loadPreset(PRESETS[key]);
+});
+function loadPreset(p){
+  $("#scenarioName").value = p.name;
+  $("#iterations").value = p.iterations;
+  $("#aggType").value = p.agg;
+  $("#riskThreshold").value = p.threshold;
+  factorBody.innerHTML="";
+  p.factors.forEach(f=> newFactorRow(f));
+  buildCorrMatrix(p.corr);
+  showMsg("Preset loaded.");
+}
+
+/* ----------------------------- Correlation Matrix ----------------------------- */
+function getFactorNames(){
+  return $$("#factorBody .f-name").map(i=>i.value.trim()||"Factor");
+}
+function buildCorrMatrix(fromPreset=null){
+  const wrap = $("#corrWrap");
+  const names = getFactorNames();
+  if(names.length===0){ wrap.innerHTML="<div class='small' style='padding:10px'>Add factors to configure correlations.</div>"; return; }
+  let html = "<table><thead><tr><th></th>";
+  names.forEach(n=> html += `<th title="${n}">${n}</th>`);
+  html += "</tr></thead><tbody>";
+  for(let r=0;r<names.length;r++){
+    html += `<tr><th style="text-align:left">${names[r]}</th>`;
+    for(let c=0;c<names.length;c++){
+      const id = `corr_${r}_${c}`;
+      if(r===c){
+        html += `<td><input id="${id}" type="number" step="any" value="1" disabled style="width:68px"></td>`;
+      }else{
+        const v = fromPreset? (fromPreset[r]?.[c] ?? 0) : 0;
+        html += `<td><input id="${id}" type="number" step="any" min="-0.9" max="0.9" value="${v}" style="width:68px"></td>`;
+      }
+    }
+    html+="</tr>";
+  }
+  html+="</tbody></table>";
+  wrap.innerHTML = html;
+}
+
+/* ----------------------------- Read form ----------------------------- */
+function readFactors(){
+  const rows = $$("#factorBody tr");
+  if(rows.length===0) throw new Error("Add at least one factor.");
+  const factors=[];
+  for(const tr of rows){
+    const get = cls => tr.querySelector(cls).value;
+    const f = {
+      name: get(".f-name").trim() || "Factor",
+      dist: tr.querySelector(".f-dist").value,
+      mean: numOrNull(get(".f-mean")),
+      sd: numOrNull(get(".f-sd")),
+      min: numOrNull(get(".f-min")),
+      mode: numOrNull(get(".f-mode")),
+      max: numOrNull(get(".f-max")),
+      lambda: numOrNull(get(".f-lambda")),
+      weight: numOrNull(get(".f-weight")) ?? 1,
+      notes: get(".f-notes").trim()
+    };
+    validateFactor(f);
+    factors.push(f);
+  }
+  return factors;
+}
+function numOrNull(v){ const n = Number(v); return isNaN(n)? null : n; }
+function validateFactor(f){
+  const d=f.dist;
+  const need = (cond,msg)=>{ if(!cond) throw new Error(`${f.name}: ${msg}`); };
+  if(d==="Normal"){
+    need(isNum(f.mean),"Normal needs mean");
+    need(isNum(f.sd) && f.sd>0,"Normal needs sd > 0");
+  }else if(d==="Triangular"){
+    need(isNum(f.min) && isNum(f.mode) && isNum(f.max),"Triangular needs min, mode, max");
+    need(f.min<=f.mode && f.mode<=f.max,"Triangular requires min <= mode <= max");
+  }else if(d==="Uniform"){
+    need(isNum(f.min) && isNum(f.max),"Uniform needs min, max");
+    need(f.max>f.min,"Uniform requires max > min");
+  }else if(d==="PERT"){
+    need(isNum(f.min) && isNum(f.mode) && isNum(f.max),"PERT needs min, mode, max");
+    need(f.min<=f.mode && f.mode<=f.max,"PERT requires min <= mode <= max");
+    if(f.lambda==null) f.lambda=4;
+    need(f.lambda>0,"lambda must be > 0");
+  }
+}
+function isNum(x){ return typeof x==="number" && !isNaN(x); }
+function readCorrMatrix(n){
+  const k = n ?? getFactorNames().length;
+  const R = Array.from({length:k},()=>Array(k).fill(0));
+  for(let i=0;i<k;i++){
+    for(let j=0;j<k;j++){
+      const el = $(`#corr_${i}_${j}`);
+      let v = el ? Number(el.value) : (i===j?1:0);
+      if(i===j) v=1;
+      if(i!==j) v = clamp(v,-0.9,0.9);
+      R[i][j]=v;
+    }
+  }
+  // Make symmetric
+  for(let i=0;i<k;i++) for(let j=i+1;j<k;j++){
+    const avg = (R[i][j]+R[j][i])/2;
+    R[i][j]=R[j][i]=avg;
+    const a = $(`#corr_${i}_${j}`), b=$(`#corr_${j}_${i}`);
+    if(a) a.value=rnd(avg,3);
+    if(b) b.value=rnd(avg,3);
+  }
+  return R;
+}
+
+/* ----------------------------- RNG and distributions ----------------------------- */
+// Standard normal via Box Muller with cache
+const Rand = (()=> {
+  let spare=null;
+  function randn(){
+    if(spare!=null){ const v=spare; spare=null; return v; }
+    let u=0, v=0, s=0;
+    while(s===0 || s>=1){ u=Math.random()*2-1; v=Math.random()*2-1; s=u*u+v*v; }
+    const m = Math.sqrt(-2*Math.log(s)/s);
+    spare = v*m;
+    return u*m;
+  }
+  function gamma(shape){ // Marsaglia and Tsang
+    if(shape<=0) return 0;
+    if(shape<1){
+      // Boost using Johnk's or property: Gamma(a) = Gamma(a+1)*U^(1/a)
+      const g = gamma(shape+1);
+      return g * Math.pow(Math.random(), 1/shape);
+    }
+    const d = shape - 1/3;
+    const c = 1/Math.sqrt(9*d);
+    while(true){
+      let x = randn();
+      let v = 1 + c*x;
+      if(v<=0) continue;
+      v = v*v*v;
+      const u = Math.random();
+      if(u < 1 - 0.0331*(x*x)*(x*x)) return d*v;
+      if(Math.log(u) < 0.5*x*x + d*(1 - v + Math.log(v))) return d*v;
+    }
+  }
+  function beta(alpha, betaP){
+    const x = gamma(alpha), y = gamma(betaP);
+    return x/(x+y);
+  }
+  return { randn, gamma, beta };
+})();
+
+// Sampling functions
+function sampleFactor(f){
+  const d=f.dist;
+  if(d==="Normal"){
+    return f.mean + f.sd * Rand.randn();
+  }
+  if(d==="Triangular"){
+    const u = Math.random();
+    const {min:a, mode:c, max:b} = f;
+    const Fc = (c-a)/(b-a);
+    if(u < Fc){
+      return a + Math.sqrt(u*(b-a)*(c-a));
+    }else{
+      return b - Math.sqrt((1-u)*(b-a)*(b-c));
+    }
+  }
+  if(d==="Uniform"){
+    return f.min + Math.random()*(f.max - f.min);
+  }
+  if(d==="PERT"){
+    const a=f.min, b=f.max, m=f.mode, lam=f.lambda??4;
+    const alpha = 1 + lam*(m - a)/(b - a);
+    const beta = 1 + lam*(b - m)/(b - a);
+    const t = Rand.beta(alpha, beta);
+    return a + t*(b - a);
+  }
+  return 0;
+}
+
+/* ----------------------------- Iman-Conover correlation ----------------------------- */
+/* Steps:
+   1) Generate independent samples Xi for each variable i.
+   2) Generate correlated normal scores Zi with desired correlation R via Cholesky.
+   3) For each i: rank Zi, then reorder Xi to match ranks of Zi.
+   This imposes rank correlation close to target.
+*/
+function choleskyDecomp(A){
+  const n=A.length;
+  const L = Array.from({length:n},()=>Array(n).fill(0));
+  for(let i=0;i<n;i++){
+    for(let j=0;j<=i;j++){
+      let sum=A[i][j];
+      for(let k=0;k<j;k++) sum -= L[i][k]*L[j][k];
+      if(i===j){
+        if(sum<=1e-10) throw new Error("Correlation matrix not positive definite. Reduce extreme correlations.");
+        L[i][j]=Math.sqrt(sum);
+      }else{
+        L[i][j]=sum/L[j][j];
+      }
+    }
+  }
+  return L;
+}
+function imposeCorrelation(samplesByVar, R){
+  const k = samplesByVar.length;
+  const N = samplesByVar[0].length;
+  // 1) correlated normals
+  // jitter diagonal if needed
+  let Ruse = R.map(row=>row.slice());
+  for(let i=0;i<k;i++){ Ruse[i][i]=1; for(let j=0;j<k;j++){ if(i!==j) Ruse[i][j]=clamp(Ruse[i][j],-0.99,0.99); } }
+  let L;
+  try{ L = choleskyDecomp(Ruse); }
+  catch(e){
+    // add small jitter to diagonal
+    for(let i=0;i<k;i++) Ruse[i][i]+=1e-6;
+    L = choleskyDecomp(Ruse);
+  }
+  const Z = Array.from({length:N},()=>Array(k).fill(0));
+  for(let n=0;n<N;n++){
+    const z0 = Array.from({length:k},()=>Rand.randn());
+    // y = L * z0  (using rows of L)
+    for(let i=0;i<k;i++){
+      let s=0;
+      for(let j=0;j<=i;j++) s += L[i][j]*z0[j];
+      Z[n][i]=s;
+    }
+  }
+  // 2) ranks of Z by column
+  const ranks = [];
+  for(let j=0;j<k;j++){
+    const col = Z.map((row,i)=>({i, v:row[j]})).sort((a,b)=>a.v-b.v);
+    const r = Array(N);
+    for(let rank=0; rank<N; rank++){ r[col[rank].i] = rank; }
+    ranks.push(r);
+  }
+  // 3) reorder each variable's independent samples according to ranks
+  for(let j=0;j<k;j++){
+    const s = samplesByVar[j].slice().sort((a,b)=>a-b);
+    const rj = ranks[j];
+    for(let n=0;n<N;n++){
+      samplesByVar[j][n] = s[rj[n]];
+    }
+  }
+  return samplesByVar;
+}
+
+/* ----------------------------- Simulation ----------------------------- */
+function aggregateValues(matrix, aggType, weights){
+  const N = matrix[0].length, k = matrix.length;
+  const out = new Array(N).fill(0);
+  if(aggType==="sum"){
+    for(let i=0;i<k;i++){
+      const col = matrix[i];
+      for(let n=0;n<N;n++) out[n]+=col[n];
+    }
+  }else if(aggType==="average"){
+    for(let i=0;i<k;i++){
+      const col=matrix[i];
+      for(let n=0;n<N;n++) out[n]+=col[n];
+    }
+    for(let n=0;n<N;n++) out[n]/=k;
+  }else{
+    // weighted
+    for(let i=0;i<k;i++){
+      const w = isNum(weights[i])? weights[i] : 1;
+      const col=matrix[i];
+      for(let n=0;n<N;n++) out[n]+=w*col[n];
+    }
+  }
+  return out;
+}
+function simulateOnce(config){
+  const { factors, iterations, aggType, R } = config;
+  const N = iterations;
+  const k = factors.length;
+  // Generate independent samples per factor
+  const samples = Array.from({length:k},()=>new Array(N));
+  for(let i=0;i<k;i++){
+    const f = factors[i];
+    for(let n=0;n<N;n++) samples[i][n] = sampleFactor(f);
+  }
+  // impose correlation if any off-diagonals nonzero
+  const needCorr = R && R.length===k && R.some((row,i)=> row.some((v,j)=> i!==j && Math.abs(v)>1e-12 ));
+  if(needCorr) imposeCorrelation(samples, R);
+  const weights = factors.map(f=> f.weight ?? 1);
+  const outcomes = aggregateValues(samples, aggType, weights);
+  return { samples, outcomes };
+}
+
+/* ----------------------------- Statistics ----------------------------- */
+function summaryStats(arr, pctList=[5,10,25,50,75,90,95]){
+  const N=arr.length;
+  const sorted = arr.slice().sort((a,b)=>a-b);
+  const mean = arr.reduce((a,b)=>a+b,0)/N;
+  const sd = Math.sqrt(arr.reduce((a,b)=>a+(b-mean)*(b-mean),0)/(N-1));
+  const min = sorted[0], max = sorted[N-1];
+  const median = quantileSorted(sorted, 0.5);
+  const pct = {};
+  for(const p of pctList){ pct[`p${p}`]=quantileSorted(sorted, p/100); }
+  return {count:N, mean, median, sd, min, max, pct, sorted};
+}
+function quantileSorted(sorted, q){
+  const n = sorted.length;
+  if(n===0) return NaN;
+  const pos = (n-1)*q;
+  const lo = Math.floor(pos), hi = Math.ceil(pos);
+  if(lo===hi) return sorted[lo];
+  const h = pos-lo;
+  return sorted[lo]*(1-h)+sorted[hi]*h;
+}
+function pearson(x, y){
+  const n=x.length;
+  const mx = x.reduce((a,b)=>a+b,0)/n;
+  const my = y.reduce((a,b)=>a+b,0)/n;
+  let num=0, dx=0, dy=0;
+  for(let i=0;i<n;i++){
+    const a=x[i]-mx, b=y[i]-my;
+    num += a*b; dx += a*a; dy += b*b;
+  }
+  return num/Math.sqrt(dx*dy);
+}
+
+/* ----------------------------- Charts ----------------------------- */
+let histChart, cdfChart, gaugeChart, tornadoChart, compareChart, sweepChart;
+function mkHistChart(data, bins=40){
+  if(histChart) histChart.destroy();
+  const min=Math.min(...data), max=Math.max(...data);
+  const width = (max-min);
+  const k = Math.max(5, Math.min(80, bins));
+  const edges = Array.from({length:k+1}, (_,i)=> min + i*width/k);
+  const counts = new Array(k).fill(0);
+  for(const v of data){
+    let idx = Math.floor((v-min)/width*k);
+    if(idx===k) idx=k-1;
+    counts[idx]++;
+  }
+  const centers = edges.slice(0,-1).map((e,i)=> (e+edges[i+1])/2 );
+  const ctx=$("#histChart");
+  histChart = new Chart(ctx, {
+    type:"bar",
+    data:{ labels: centers, datasets:[{ label:"Frequency", data: counts }]},
+    options:{ maintainAspectRatio:false, scales:{ x:{ ticks:{display:false}}, y:{ beginAtZero:true } } }
+  });
+}
+function mkCdfChart(sorted){
+  if(cdfChart) cdfChart.destroy();
+  const n=sorted.length;
+  const xs=[], ys=[];
+  const step = Math.max(1, Math.floor(n/200));
+  for(let i=0;i<n;i+=step){
+    xs.push(sorted[i]); ys.push(i/(n-1));
+  }
+  xs.push(sorted[n-1]); ys.push(1);
+  cdfChart = new Chart($("#cdfChart"),{
+    type:"line",
+    data:{ labels: xs, datasets:[{ label:"CDF", data: ys, fill:false }]},
+    options:{ maintainAspectRatio:false, parsing:false, scales:{ x:{ type:"linear"}, y:{ min:0, max:1 } } }
+  });
+}
+function mkGaugeChart(prob){
+  if(gaugeChart) gaugeChart.destroy();
+  const ctx=$("#gaugeChart");
+  gaugeChart = new Chart(ctx, {
+    type:"doughnut",
+    data:{ labels:["Exceed","Within"], datasets:[{ data:[prob, 1-prob] }]},
+    options:{
+      circumference:180, rotation:270,
+      plugins:{ legend:{display:false}, tooltip:{enabled:true}},
+      cutout:"70%"
+    }
+  });
+  // center label
+  // Chart.js v4 plugin for center text
+  Chart.defaults.plugins.legend.labels.usePointStyle = true;
+}
+function mkTornadoChart(names, sens){
+  if(tornadoChart) tornadoChart.destroy();
+  const order = names.map((n,i)=>({n, v:sens[i]})).sort((a,b)=>Math.abs(b.v)-Math.abs(a.v));
+  const labels = order.map(o=>o.n);
+  const vals = order.map(o=>o.v);
+  tornadoChart = new Chart($("#tornadoChart"),{
+    type:"bar",
+    data:{ labels, datasets:[{ label:"Pearson r", data: vals }]},
+    options:{
+      indexAxis:'y',
+      maintainAspectRatio:false,
+      scales:{ x:{ suggestedMin:-1, suggestedMax:1 } }
+    }
+  });
+}
+function mkCompareChart(series){
+  if(compareChart) compareChart.destroy();
+  const datasets = series.map((s,i)=>({
+    label: s.name,
+    data: s.cdfY.map((y,idx)=>({x:s.cdfX[idx], y})),
+    parsing:false, type:"line"
+  }));
+  compareChart = new Chart($("#compareChart"),{
+    type:"line",
+    data:{ datasets },
+    options:{ maintainAspectRatio:false, scales:{ x:{type:"linear"}, y:{ min:0, max:1 } } }
+  });
+}
+function mkSweepChart(xs, ys, label){
+  if(sweepChart) sweepChart.destroy();
+  sweepChart = new Chart($("#sweepChart"),{
+    type:"line",
+    data:{ labels: xs, datasets:[{ label, data: ys }]},
+    options:{ maintainAspectRatio:false, scales:{ x:{ title:{ display:true, text:"Parameter value"}}, y:{ title:{ display:true, text:label}} } }
+  });
+}
+
+/* ----------------------------- Render summary tables ----------------------------- */
+function renderSummary(stats, pctList){
+  const tbl=$("#summaryTbl");
+  const pctRow = pctList.map(p=> `<th>p${p}</th>`).join("");
+  const pctVals = pctList.map(p=> `<td>${rnd(stats.pct[`p${p}`],3)}</td>`).join("");
+  tbl.innerHTML = `
+    <thead><tr>
+      <th>Count</th><th>Mean</th><th>Median</th><th>Std</th><th>Min</th><th>Max</th>${pctRow}
+    </tr></thead>
+    <tbody><tr>
+      <td>${stats.count}</td><td>${rnd(stats.mean,3)}</td><td>${rnd(stats.median,3)}</td><td>${rnd(stats.sd,3)}</td>
+      <td>${rnd(stats.min,3)}</td><td>${rnd(stats.max,3)}</td>${pctVals}
+    </tr></tbody>
+  `;
+}
+function renderCompareTable(items){
+  const tbl=$("#compareTbl");
+  if(items.length===0){ tbl.innerHTML = "<thead><tr><th>Scenario</th></tr></thead><tbody><tr><td class='small'>Nothing stored. Click Add to compare after a run.</td></tr></tbody>"; return; }
+  const heads = ["Scenario","Iterations","Mean","Median","Std","Min","Max","p90","p95"];
+  const rows = items.map(s=>{
+    const st = s.stats;
+    const p90 = s.stats.pct.p90 ?? quantileSorted(st.sorted, .9);
+    const p95 = s.stats.pct.p95 ?? quantileSorted(st.sorted, .95);
+    return `<tr>
+      <td>${s.name}</td><td>${st.count}</td><td>${rnd(st.mean,3)}</td><td>${rnd(st.median,3)}</td><td>${rnd(st.sd,3)}</td>
+      <td>${rnd(st.min,3)}</td><td>${rnd(st.max,3)}</td><td>${rnd(p90,3)}</td><td>${rnd(p95,3)}</td>
+    </tr>`;
+  }).join("");
+  tbl.innerHTML = `<thead><tr>${heads.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows}</tbody>`;
+}
+
+/* ----------------------------- Run simulation and update UI ----------------------------- */
+let lastRun=null; // store last results
+$("#runBtn").addEventListener("click", runSimulation);
+
+function getIterations(){
+  const mode = $("#runMode").value;
+  let n = Number($("#iterations").value);
+  if(isNaN(n)||n<1000) n=1000;
+  if(n>500000) n=500000;
+  if(mode==="quick") n = Math.min(n, 20000);
+  return n;
+}
+function readConfig(){
+  const factors = readFactors();
+  const iterations = getIterations();
+  const aggType = $("#aggType").value;
+  const pctList = parseNums($("#pctList").value);
+  const R = readCorrMatrix(factors.length);
+  const threshold = Number($("#riskThreshold").value);
+  return { factors, iterations, aggType, pctList, R, threshold };
+}
+function runSimulation(){
+  try{
+    $("#status").textContent="Running...";
+    const t0=performance.now();
+    const cfg = readConfig();
+    const {samples, outcomes} = simulateOnce(cfg);
+    const stats = summaryStats(outcomes, cfg.pctList);
+    // sensitivity
+    const names = getFactorNames();
+    const sens = names.map((_,i)=> pearson(samples[i], outcomes));
+    // charts
+    mkHistChart(outcomes);
+    mkCdfChart(stats.sorted);
+    // gauge: probability exceed threshold
+    const exceed = stats.sorted.filter(v=> v>cfg.threshold).length / stats.count;
+    mkGaugeChart(exceed);
+    mkTornadoChart(names, sens);
+    renderSummary(stats, cfg.pctList);
+    lastRun = {
+      name: $("#scenarioName").value || "Scenario",
+      iterations: cfg.iterations,
+      outcomes, stats, pctList: cfg.pctList,
+      cdfX: buildCdfX(stats.sorted), cdfY: buildCdfY(stats.sorted),
+    };
+    $("#status").textContent=`Done in ${rnd((performance.now()-t0)/1000,2)} s`;
+    showMsg("Simulation complete.");
+  }catch(err){
+    $("#status").textContent="Error";
+    showMsg(err.message, "err");
+  }
+}
+function buildCdfX(sorted){
+  const n=sorted.length, step=Math.max(1,Math.floor(n/200));
+  const xs=[]; for(let i=0;i<n;i+=step) xs.push(sorted[i]); xs.push(sorted[n-1]); return xs;
+}
+function buildCdfY(sorted){
+  const n=sorted.length, step=Math.max(1,Math.floor(n/200));
+  const ys=[]; for(let i=0;i<n;i+=step) ys.push(i/(n-1)); ys.push(1); return ys;
+}
+
+/* ----------------------------- Compare up to 3 ----------------------------- */
+const compareStore=[];
+$("#addToCompareBtn").addEventListener("click", ()=>{
+  if(!lastRun){ showMsg("Run a simulation first.", "err"); return; }
+  if(compareStore.length>=3){ showMsg("Compare store full. Clear to add new.", "err"); return; }
+  compareStore.push(lastRun);
+  updateCompare();
+  showMsg(`Stored: ${lastRun.name}`);
+});
+$("#clearCompareBtn").addEventListener("click", ()=>{
+  compareStore.length=0;
+  updateCompare();
+  showMsg("Compare store cleared.");
+});
+function updateCompare(){
+  if(compareStore.length===0){
+    renderCompareTable([]);
+    if(compareChart) compareChart.destroy();
+    return;
+  }
+  // chart series
+  const series = compareStore.map(s=>({ name:s.name, cdfX:s.cdfX, cdfY:s.cdfY, stats:s.stats }));
+  mkCompareChart(series);
+  renderCompareTable(compareStore);
+}
+
+/* ----------------------------- Export ----------------------------- */
+$("#exportCsvBtn").addEventListener("click", ()=>{
+  if(!lastRun){ showMsg("Nothing to export. Run first.", "err"); return; }
+  const st = lastRun.stats;
+  const pcts = Object.entries(st.pct).map(([k,v])=>`${k},${v}`).join("\n");
+  const csv = `Scenario,${lastRun.name}
+Count,${st.count}
+Mean,${st.mean}
+Median,${st.median}
+Std,${st.sd}
+Min,${st.min}
+Max,${st.max}
+${pcts}
+`;
+  downloadText(csv, safeFileName(lastRun.name)+"_summary.csv");
+});
+$("#savePngAllBtn").addEventListener("click", ()=>{
+  const maps = [
+    {id:"histChart", name:"histogram"},
+    {id:"cdfChart", name:"cdf"},
+    {id:"gaugeChart", name:"gauge"},
+    {id:"tornadoChart", name:"tornado"},
+    {id:"compareChart", name:"compare"},
+    {id:"sweepChart", name:"sweep"}
+  ];
+  for(const m of maps){
+    const c = document.getElementById(m.id);
+    if(c && c.toDataURL){
+      downloadImage(c, (lastRun?.name || "scenario")+"_"+m.name+".png");
+    }
+  }
+});
+function downloadText(text, fname){
+  const blob = new Blob([text], {type:"text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href=url; a.download=fname; a.click();
+  URL.revokeObjectURL(url);
+}
+function downloadImage(canvas, name){
+  const url = canvas.toDataURL("image/png");
+  const a = document.createElement("a"); a.href=url; a.download=safeFileName(name); a.click();
+}
+function safeFileName(s){ return String(s).replace(/[^a-z0-9_\-]+/gi,"_"); }
+
+/* ----------------------------- File upload ----------------------------- */
+$("#loadFileBtn").addEventListener("click", ()=>{
+  const f = $("#fileInput").files?.[0];
+  if(!f){ showMsg("Choose a CSV or JSON file.", "err"); return; }
+  const reader = new FileReader();
+  reader.onload = e=>{
+    const txt = e.target.result;
+    if(f.name.toLowerCase().endsWith(".json")){
+      try{
+        const obj = JSON.parse(txt);
+        loadFromJSON(obj);
+        showMsg("JSON loaded.");
+      }catch(err){ showMsg("Invalid JSON: "+err.message, "err"); }
+    }else{
+      try{
+        const rows = csvToRows(txt);
+        loadFromCSV(rows);
+        showMsg("CSV loaded.");
+      }catch(err){ showMsg("Invalid CSV: "+err.message, "err"); }
+    }
+  };
+  reader.readAsText(f);
+});
+function csvToRows(txt){
+  const lines = txt.split(/\r?\n/).filter(l=>l.trim() && !l.trim().startsWith("#"));
+  const header = lines[0].split(",").map(s=>s.trim().toLowerCase());
+  const idx = (k)=> header.indexOf(k);
+  const out=[];
+  for(let i=1;i<lines.length;i++){
+    const cols = lines[i].split(",").map(s=>s.trim());
+    const obj = (k)=> {
+      const j = idx(k); if(j<0 || j>=cols.length) return "";
+      return cols[j];
+    };
+    out.push({
+      name: obj("name"),
+      dist: obj("dist") || "PERT",
+      mean: toNum(obj("mean")),
+      sd: toNum(obj("sd")),
+      min: toNum(obj("min")),
+      mode: toNum(obj("mode")),
+      max: toNum(obj("max")),
+      lambda: toNum(obj("lambda")) ?? 4,
+      weight: toNum(obj("weight")) ?? 1,
+      notes: obj("notes") || ""
+    });
+  }
+  return out;
+}
+function toNum(s){ if(s===""||s==null) return null; const n=Number(s); return isNaN(n)? null:n; }
+function loadFromCSV(factors){
+  factorBody.innerHTML="";
+  for(const f of factors) newFactorRow(f);
+  buildCorrMatrix();
+  refreshSweepFactorList();
+}
+function loadFromJSON(obj){
+  if(obj.name) $("#scenarioName").value = obj.name;
+  if(obj.iterations) $("#iterations").value = obj.iterations;
+  if(obj.agg) $("#aggType").value = obj.agg;
+  if(obj.threshold!=null) $("#riskThreshold").value = obj.threshold;
+  if(Array.isArray(obj.factors)){
+    factorBody.innerHTML="";
+    obj.factors.forEach(f=> newFactorRow(f));
+  }
+  if(Array.isArray(obj.corr)){
+    buildCorrMatrix(obj.corr);
+  }else{
+    buildCorrMatrix();
+  }
+  refreshSweepFactorList();
+}
+
+/* ----------------------------- Local storage save/load ----------------------------- */
+const LS_KEY="qa_montecarlo_scenarios";
+function getSaved(){
+  try{ return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch{ return {}; }
+}
+function setSaved(map){
+  localStorage.setItem(LS_KEY, JSON.stringify(map));
+}
+function refreshSavedList(){
+  const map = getSaved();
+  const sel = $("#savedList");
+  sel.innerHTML = Object.keys(map).length? "" : "<option value=''>No saved scenarios</option>";
+  for(const k of Object.keys(map)){
+    const opt = document.createElement("option");
+    opt.value = k; opt.textContent=k;
+    sel.appendChild(opt);
+  }
+}
+$("#saveScenarioBtn").addEventListener("click", ()=>{
+  try{
+    const cfg = readConfig();
+    const payload = {
+      name: $("#scenarioName").value || "Scenario",
+      iterations: cfg.iterations,
+      agg: cfg.aggType,
+      threshold: cfg.threshold,
+      factors: cfg.factors,
+      corr: cfg.R
+    };
+    const map = getSaved();
+    map[payload.name] = payload;
+    setSaved(map);
+    refreshSavedList();
+    showMsg("Scenario saved.");
+  }catch(err){ showMsg(err.message, "err"); }
+});
+$("#loadScenarioBtn").addEventListener("click", ()=>{
+  const key = $("#savedList").value;
+  if(!key){ showMsg("Select a saved item.", "err"); return; }
+  const map = getSaved();
+  if(!map[key]){ showMsg("Not found.", "err"); return; }
+  loadFromJSON(map[key]);
+  showMsg("Scenario loaded.");
+});
+$("#deleteScenarioBtn").addEventListener("click", ()=>{
+  const key = $("#savedList").value;
+  if(!key){ showMsg("Select a saved item.", "err"); return; }
+  const map = getSaved();
+  delete map[key];
+  setSaved(map);
+  refreshSavedList();
+  showMsg("Deleted.");
+});
+
+/* ----------------------------- Sweep ----------------------------- */
+function refreshSweepFactorList(){
+  const names = getFactorNames();
+  const sel=$("#sweepFactor");
+  sel.innerHTML="";
+  for(const n of names){
+    const opt=document.createElement("option");
+    opt.value=n; opt.textContent=n; sel.appendChild(opt);
+  }
+}
+$("#runSweepBtn").addEventListener("click", ()=>{
+  try{
+    $("#sweepStatus").textContent="Running...";
+    const cfg = readConfig();
+    const fname = $("#sweepFactor").value;
+    const param = $("#sweepParam").value;
+    let start = Number($("#sweepStart").value);
+    let end = Number($("#sweepEnd").value);
+    const steps = Math.max(2, Math.min(50, Number($("#sweepSteps").value)));
+    const iters = Math.max(2000, Math.min(100000, Number($("#sweepIterations").value)));
+    const metric = $("#sweepMetric").value;
+    const idx = cfg.factors.findIndex(f=>f.name===fname);
+    if(idx<0) throw new Error("Pick a valid factor.");
+    const xs=[], ys=[];
+    for(let s=0;s<steps;s++){
+      const val = start + (end - start) * (s/(steps-1));
+      const fcopy = cfg.factors.map(f=>({...f}));
+      fcopy[idx][param] = val;
+      // validate modified factor
+      validateFactor(fcopy[idx]);
+      const {outcomes} = simulateOnce({factors:fcopy, iterations:iters, aggType:cfg.aggType, R:cfg.R});
+      const st = summaryStats(outcomes,[90,95,50]);
+      let y;
+      if(metric==="mean") y=st.mean;
+      else if(metric==="median") y=st.median;
+      else if(metric==="std") y=st.sd;
+      else if(metric==="p90") y=st.pct.p90;
+      else if(metric==="p95") y=st.pct.p95;
+      xs.push(val); ys.push(y);
+    }
+    mkSweepChart(xs, ys, `${metric} vs ${fname}.${param}`);
+    const rows = xs.map((x,i)=> `<tr><td>${rnd(x,4)}</td><td>${rnd(ys[i],4)}</td></tr>`).join("");
+    $("#sweepTbl").innerHTML = `<thead><tr><th>${fname}.${param}</th><th>${metric}</th></tr></thead><tbody>${rows}</tbody>`;
+    $("#sweepStatus").textContent="Done";
+  }catch(err){
+    $("#sweepStatus").textContent="Error";
+    showMsg(err.message, "err");
+  }
+});
+
+/* ----------------------------- Init ----------------------------- */
+(function init(){
+  refreshSavedList();
+  // Start with a simple preset
+  loadPreset(PRESETS.security);
+})();
+
+/* ========================== END OF APP SCRIPT ========================== */
+</script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+{
+  "name": "GSOC Test C - Peacebuilding Program Performance",
+  "iterations": 50000,
+  "agg": "weighted",
+  "threshold": 2.0,
+  "factors": [
+    { "name": "Local_BuyIn", "dist": "PERT", "min": 0.35, "mode": 0.65, "max": 0.90, "lambda": 4, "weight": 0.9, "notes": "Community support for program activities" },
+    { "name": "Govt_Coordination", "dist": "Triangular", "min": 0.20, "mode": 0.50, "max": 0.85, "weight": 0.7, "notes": "Interagency and local authority coordination" },
+    { "name": "Funding_Stability", "dist": "Normal", "mean": 0.55, "sd": 0.18, "weight": 0.6, "notes": "Donor and cashflow reliability" },
+    { "name": "Spoiler_Activity", "dist": "PERT", "min": 0.05, "mode": 0.15, "max": 0.40, "lambda": 4, "weight": -0.8, "notes": "Actions by armed groups or elites that undermine progress" },
+    { "name": "Security_Incident_P", "dist": "PERT", "min": 0.01, "mode": 0.05, "max": 0.18, "lambda": 4, "weight": -0.7, "notes": "Probability of security incidents affecting operations" },
+    { "name": "Mediator_Access", "dist": "Uniform", "min": 0.30, "max": 0.90, "weight": 0.5, "notes": "Access of mediators to key stakeholders" },
+    { "name": "Social_Cohesion", "dist": "PERT", "min": 0.30, "mode": 0.60, "max": 0.90, "lambda": 4, "weight": 0.8, "notes": "Horizontal trust across groups" },
+    { "name": "Economic_Shock_Index", "dist": "Triangular", "min": 0.00, "mode": 0.15, "max": 0.45, "weight": -0.4, "notes": "Short-term macro and market instability" },
+    { "name": "Monitoring_Quality", "dist": "Triangular", "min": 0.40, "mode": 0.70, "max": 0.95, "weight": 0.4, "notes": "Strength of MEL systems and feedback loops" }
+  ],
+  "corr": [
+    [ 1.00, 0.40, 0.25, -0.40, -0.30, 0.35, 0.50, -0.20, 0.30 ],
+    [ 0.40, 1.00, 0.30, -0.30, -0.20, 0.35, 0.40, -0.15, 0.40 ],
+    [ 0.25, 0.30, 1.00, -0.20, -0.15, 0.20, 0.25, -0.30, 0.25 ],
+    [ -0.40, -0.30, -0.20, 1.00, 0.35, -0.25, -0.40, 0.25, -0.20 ],
+    [ -0.30, -0.20, -0.15, 0.35, 1.00, -0.20, -0.30, 0.20, -0.15 ],
+    [ 0.35, 0.35, 0.20, -0.25, -0.20, 1.00, 0.35, -0.15, 0.30 ],
+    [ 0.50, 0.40, 0.25, -0.40, -0.30, 0.35, 1.00, -0.20, 0.30 ],
+    [ -0.20, -0.15, -0.30, 0.25, 0.20, -0.15, -0.20, 1.00, -0.15 ],
+    [ 0.30, 0.40, 0.25, -0.20, -0.15, 0.30, 0.30, -0.15, 1.00 ]
+  ]
+}
