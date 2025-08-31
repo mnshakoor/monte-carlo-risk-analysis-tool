@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monte Carlo Risk Analysis Tool</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --text-color: #212529;
+            --header-bg: #343a40;
+            --header-text: #ffffff;
+            --sidebar-bg: #e9ecef;
+            --card-bg: #ffffff;
+            --border-color: #dee2e6;
+            --primary-color: #007bff;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+        }
+        .dark-mode {
+            --bg-color: #212529;
+            --text-color: #f8f9fa;
+            --header-bg: #343a40;
+            --header-text: #ffffff;
+            --sidebar-bg: #343a40;
+            --card-bg: #343a40;
+            --border-color: #495057;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+        header {
+            background-color: var(--header-bg);
+            color: var(--header-text);
+            padding: 1rem;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .container {
+            display: flex;
+            min-height: calc(100vh - 60px);
+        }
+        .sidebar {
+            width: 300px;
+            background-color: var(--sidebar-bg);
+            padding: 1rem;
+            overflow-y: auto;
+            border-right: 1px solid var(--border-color);
+        }
+        .main {
+            flex: 1;
+            padding: 1rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            font-size: 1rem;
+        }
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .btn-danger {
+            background-color: var(--danger-color);
+        }
+        .btn-danger:hover {
+            background-color: #bb2d3b;
+        }
+        .btn-success {
+            background-color: var(--success-color);
+        }
+        .btn-success:hover {
+            background-color: #1e7e34;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 1rem;
+        }
+        .hidden {
+            display: none;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Monte Carlo Risk Analysis Tool</h1>
+        <button id="darkModeToggle">Toggle Dark Mode</button>
+    </header>
+    <div class="container">
+        <div class="sidebar">
+            <div class="card">
+                <h2>Input Options</h2>
+                <div class="form-group">
+                    <label for="scenarioPreset">Use Case Presets</label>
+                    <select id="scenarioPreset">
+                        <option value="">-- Select a Preset --</option>
+                        <option value="conflict">Armed Conflict Escalation Probability</option>
+                        <option value="aid">Humanitarian Aid Delivery Delays</option>
+                        <option value="security">NGO Field Team Security Risk</option>
+                        <option value="peace">Peacebuilding Intervention Success</option>
+                    </select>
+                    <button id="loadPreset">Load Preset</button>
+                </div>
+                <div class="form-group">
+                    <label for="inputMethod">Input Method</label>
+                    <select id="inputMethod">
+                        <option value="manual">Manual Entry</option>
+                        <option value="file">File Upload (CSV/JSON)</option>
+                    </select>
+                </div>
+                <div id="manualInputSection">
+                    <div class="form-group">
+                        <label for="numVariables">Number of Risk Factors</label>
+                        <input type="number" id="numVariables" min="1" max="10" value="3">
+                        <button id="addVariables">Update Variables</button>
+                    </div>
+                    <div id="variablesContainer"></div>
+                    <div class="form-group">
+                        <label for="numSimulations">Number of Simulations</label>
+                        <input type="number" id="numSimulations" min="1000" max="500000" value="10000">
+                    </div>
+                    <div class="form-group">
+                        <label for="correlationMatrix">Correlation Matrix (optional)</label>
+                        <textarea id="correlationMatrix" rows="4" placeholder="Enter correlation matrix as CSV, e.g.:
+1,0.5,0
+0.5,1,0.3
+0,0.3,1"></textarea>
+                    </div>
+                </div>
+                <div id="fileInputSection" class="hidden">
+                    <div class="form-group">
+                        <label for="fileUpload">Upload CSV/JSON File</label>
+                        <input type="file" id="fileUpload" accept=".csv,.json">
+                    </div>
+                </div>
+                <button id="runSimulation">Run Simulation</button>
+                <button id="saveScenario" class="btn-success">Save Scenario</button>
+                <button id="loadScenario" class="btn-success">Load Scenario</button>
+            </div>
+            <div class="card">
+                <h2>Advanced Options</h2>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="batchMode"> Batch Mode (Parameter Sweep)
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="quickMode"> Quick Mode (Fewer Iterations)
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="comparisonScenarios">Compare Scenarios (up to 3)</label>
+                    <input type="number" id="comparisonScenarios" min="1" max="3" value="1">
+                </div>
+            </div>
+        </div>
+        <div class="main">
+            <div class="card">
+                <h2>Simulation Results</h2>
+                <div id="resultsSummary" class="hidden">
+                    <h3>Summary Statistics</h3>
+                    <table id="summaryTable">
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="chart-container">
+                    <canvas id="histogramChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="cumulativeChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="tornadoChart"></canvas>
+                </div>
+                <div id="exportOptions" class="hidden">
+                    <h3>Export Options</h3>
+                    <button id="exportCSV">Export Results (CSV)</button>
+                    <button id="exportPNG">Export Charts (PNG)</button>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Multi-Scenario Comparison</h2>
+                <div class="chart-container">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+                <table id="comparisonTable" class="hidden">
+                    <thead>
+                        <tr>
+                            <th>Scenario</th>
+                            <th>Mean</th>
+                            <th>Median</th>
+                            <th>5th Percentile</th>
+                            <th>95th Percentile</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let variables = [];
+        let distributions = {};
+        let correlationMatrix = null;
+        let simulationResults = [];
+        let scenarios = [];
+        let currentScenarioIndex = 0;
+        let charts = {
+            histogram: null,
+            cumulative: null,
+            tornado: null,
+            comparison: null
+        };
+
+        // DOM Elements
+        let darkModeToggle, inputMethod, manualInputSection, fileInputSection;
+        let numVariables, addVariables, variablesContainer, scenarioPreset, loadPreset;
+        let runSimulation, saveScenario, loadScenario, fileUpload, resultsSummary;
+        let summaryTable, exportCSV, exportPNG, exportOptions, comparisonTable;
+        let comparisonScenarios, batchMode, quickMode;
+
+        // Initialize DOM elements and event listeners
+        function initializeDOM() {
+            // Get DOM Elements
+            darkModeToggle = document.getElementById('darkModeToggle');
+            inputMethod = document.getElementById('inputMethod');
+            manualInputSection = document.getElementById('manualInputSection');
+            fileInputSection = document.getElementById('fileInputSection');
+            numVariables = document.getElementById('numVariables');
+            addVariables = document.getElementById('addVariables');
+            variablesContainer = document.getElementById('variablesContainer');
+            scenarioPreset = document.getElementById('scenarioPreset');
+            loadPreset = document.getElementById('loadPreset');
+            runSimulation = document.getElementById('runSimulation');
+            saveScenario = document.getElementById('saveScenario');
+            loadScenario = document.getElementById('loadScenario');
+            fileUpload = document.getElementById('fileUpload');
+            resultsSummary = document.getElementById('resultsSummary');
+            summaryTable = document.getElementById('summaryTable').getElementsByTagName('tbody')[0];
+            exportCSV = document.getElementById('exportCSV');
+            exportPNG = document.getElementById('exportPNG');
+            exportOptions = document.getElementById('exportOptions');
+            comparisonTable = document.getElementById('comparisonTable');
+            comparisonScenarios = document.getElementById('comparisonScenarios');
+            batchMode = document.getElementById('batchMode');
+            quickMode = document.getElementById('quickMode');
+
+            // Add Event Listeners
+            darkModeToggle.addEventListener('click', toggleDarkMode);
+            inputMethod.addEventListener('change', toggleInputMethod);
+            addVariables.addEventListener('click', updateVariables);
+            loadPreset.addEventListener('click', loadPresetValues);
+            runSimulation.addEventListener('click', runMonteCarloSimulation);
+            saveScenario.addEventListener('click', saveScenarioToLocalStorage);
+            loadScenario.addEventListener('click', loadScenarioFromLocalStorage);
+            fileUpload.addEventListener('change', handleFileUpload);
+            exportCSV.addEventListener('click', exportResultsToCSV);
+            exportPNG.addEventListener('click', exportChartsToPNG);
+        }
+        // Initialize the app
+        function init() {
+            initializeDOM();
+            updateVariables();
+            checkDarkModePreference();
+        }
+
+        // Wait for DOM to be ready before initializing
+        document.addEventListener('DOMContentLoaded', function() {
+            init();
+        });
+
+        // Toggle between manual and file input methods
+        function toggleInputMethod() {
+            if (inputMethod.value === 'manual') {
+                manualInputSection.classList.remove('hidden');
+                fileInputSection.classList.add('hidden');
+            } else {
+                manualInputSection.classList.add('hidden');
+                fileInputSection.classList.remove('hidden');
+            }
+        }
+
+        // Update the variables section based on user input
+        function updateVariables() {
+            const numVars = parseInt(numVariables.value);
+            variables = Array(numVars).fill().map((_, i) => ({
+                name: `Variable ${i+1}`,
+                min: 0,
+                max: 100,
+                mostLikely: 50,
+                distribution: 'triangular',
+                enabled: true
+            }));
+
+            renderVariables();
+        }
+
+        // Render variable input fields
+        function renderVariables() {
+            variablesContainer.innerHTML = '';
+            variables.forEach((varObj, index) => {
+                const varDiv = document.createElement('div');
+                varDiv.className = 'variable-card card';
+                varDiv.innerHTML = `
+                    <h4>${varObj.name}
+                        <span class="tooltip">ⓘ
+                            <span class="tooltiptext">
+                                Define the range and most likely value for this risk factor.
+                                Distribution types: Normal, Triangular, Uniform, PERT.
+                            </span>
+                        </span>
+                    </h4>
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" value="${varObj.name}" data-index="${index}" class="var-name">
+                    </div>
+                    <div class="form-group">
+                        <label>Distribution</label>
+                        <select data-index="${index}" class="var-distribution">
+                            <option value="triangular" ${varObj.distribution === 'triangular' ? 'selected' : ''}>Triangular</option>
+                            <option value="normal" ${varObj.distribution === 'normal' ? 'selected' : ''}>Normal</option>
+                            <option value="uniform" ${varObj.distribution === 'uniform' ? 'selected' : ''}>Uniform</option>
+                            <option value="pert" ${varObj.distribution === 'pert' ? 'selected' : ''}>PERT</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Min</label>
+                        <input type="number" value="${varObj.min}" data-index="${index}" class="var-min">
+                    </div>
+                    <div class="form-group">
+                        <label>Max</label>
+                        <input type="number" value="${varObj.max}" data-index="${index}" class="var-max">
+                    </div>
+                    <div class="form-group">
+                        <label>Most Likely</label>
+                        <input type="number" value="${varObj.mostLikely}" data-index="${index}" class="var-mostlikely">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" data-index="${index}" class="var-enabled" ${varObj.enabled ? 'checked' : ''}>
+                            Enabled
+                        </label>
+                    </div>
+                `;
+                variablesContainer.appendChild(varDiv);
+            });
+
+            // Add event listeners to the new inputs
+            document.querySelectorAll('.var-name').forEach(input => {
+                input.addEventListener('change', updateVariableProperty);
+            });
+            document.querySelectorAll('.var-distribution').forEach(select => {
+                select.addEventListener('change', updateVariableProperty);
+            });
+            document.querySelectorAll('.var-min').forEach(input => {
+                input.addEventListener('change', updateVariableProperty);
+            });
+            document.querySelectorAll('.var-max').forEach(input => {
+                input.addEventListener('change', updateVariableProperty);
+            });
+            document.querySelectorAll('.var-mostlikely').forEach(input => {
+                input.addEventListener('change', updateVariableProperty);
+            });
+            document.querySelectorAll('.var-enabled').forEach(checkbox => {
+                checkbox.addEventListener('change', updateVariableProperty);
+            });
+        }
+
+        // Update variable properties from input fields
+        function updateVariableProperty(e) {
+            const index = parseInt(e.target.getAttribute('data-index'));
+            const property = e.target.className.split(' ')[0].replace('var-', '');
+            let value = e.target.value;
+
+            if (e.target.type === 'checkbox') {
+                value = e.target.checked;
+            } else if (e.target.type === 'number') {
+                value = parseFloat(value);
+            }
+
+            variables[index][property] = value;
+        }
+
+        // Load preset values based on selected use case
+        function loadPresetValues() {
+            const preset = scenarioPreset.value;
+            let presetVariables = [];
+
+            switch(preset) {
+                case 'conflict':
+                    presetVariables = [
+                        { name: 'Government Stability', min: 0, max: 100, mostLikely: 40, distribution: 'triangular' },
+                        { name: 'Rebel Group Strength', min: 0, max: 100, mostLikely: 60, distribution: 'triangular' },
+                        { name: 'International Pressure', min: 0, max: 100, mostLikely: 30, distribution: 'triangular' },
+                        { name: 'Economic Conditions', min: 0, max: 100, mostLikely: 20, distribution: 'triangular' }
+                    ];
+                    document.getElementById('correlationMatrix').value = `
+1,0.7,0.5,0.3
+0.7,1,0.4,0.2
+0.5,0.4,1,0.6
+0.3,0.2,0.6,1
+                    `.trim();
+                    break;
+                case 'aid':
+                    presetVariables = [
+                        { name: 'Road Conditions', min: 0, max: 100, mostLikely: 50, distribution: 'triangular' },
+                        { name: 'Weather Severity', min: 0, max: 100, mostLikely: 40, distribution: 'triangular' },
+                        { name: 'Checkpoint Delays', min: 0, max: 100, mostLikely: 70, distribution: 'triangular' },
+                        { name: 'Vehicle Reliability', min: 0, max: 100, mostLikely: 80, distribution: 'triangular' }
+                    ];
+                    document.getElementById('correlationMatrix').value = `
+1,0.3,0.6,0.1
+0.3,1,0.2,0.0
+0.6,0.2,1,0.3
+0.1,0.0,0.3,1
+                    `.trim();
+                    break;
+                case 'security':
+                    presetVariables = [
+                        { name: 'Local Hostility', min: 0, max: 100, mostLikely: 60, distribution: 'triangular' },
+                        { name: 'Security Measures', min: 0, max: 100, mostLikely: 70, distribution: 'triangular' },
+                        { name: 'Intel Quality', min: 0, max: 100, mostLikely: 50, distribution: 'triangular' },
+                        { name: 'Team Experience', min: 0, max: 100, mostLikely: 80, distribution: 'triangular' }
+                    ];
+                    document.getElementById('correlationMatrix').value = `
+1,0.4,0.5,0.2
+0.4,1,0.3,0.1
+0.5,0.3,1,0.4
+0.2,0.1,0.4,1
+                    `.trim();
+                    break;
+                case 'peace':
+                    presetVariables = [
+                        { name: 'Community Engagement', min: 0, max: 100, mostLikely: 70, distribution: 'triangular' },
+                        { name: 'Local Leadership Support', min: 0, max: 100, mostLikely: 60, distribution: 'triangular' },
+                        { name: 'Resource Availability', min: 0, max: 100, mostLikely: 50, distribution: 'triangular' },
+                        { name: 'External Funding', min: 0, max: 100, mostLikely: 40, distribution: 'triangular' }
+                    ];
+                    document.getElementById('correlationMatrix').value = `
+1,0.6,0.5,0.4
+0.6,1,0.4,0.3
+0.5,0.4,1,0.7
+0.4,0.3,0.7,1
+                    `.trim();
+                    break;
+            }
+
+            if (presetVariables.length > 0) {
+                variables = presetVariables;
+                numVariables.value = variables.length;
+                renderVariables();
+            }
+        }
+
+        // Handle file upload for variable input
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                if (file.name.endsWith('.csv')) {
+                    parseCSV(content);
+                } else if (file.name.endsWith('.json')) {
+                    parseJSON(content);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Parse CSV file content
+        function parseCSV(content) {
+            Papa.parse(content, {
+                header: true,
+                complete: function(results) {
+                    const data = results.data;
+                    variables = data.map(row => ({
+                        name: row.Name || `Variable ${variables.length + 1}`,
+                        min: parseFloat(row.Min) || 0,
+                        max: parseFloat(row.Max) || 100,
+                        mostLikely: parseFloat(row.MostLikely) || 50,
+                        distribution: row.Distribution || 'triangular',
+                        enabled: row.Enabled !== 'false'
+                    }));
+                    numVariables.value = variables.length;
+                    renderVariables();
+                }
+            });
+        }
+
+        // Parse JSON file content
+        function parseJSON(content) {
+            try {
+                const data = JSON.parse(content);
+                variables = data.map(item => ({
+                    name: item.name || `Variable ${variables.length + 1}`,
+                    min: item.min || 0,
+                    max: item.max || 100,
+                    mostLikely: item.mostLikely || 50,
+                    distribution: item.distribution || 'triangular',
+                    enabled: item.enabled !== false
+                }));
+                numVariables.value = variables.length;
+                renderVariables();
+            } catch (e) {
+                alert('Error parsing JSON file: ' + e.message);
+            }
+        }
+
+        // Parse correlation matrix from textarea
+        function parseCorrelationMatrix() {
+            const matrixText = document.getElementById('correlationMatrix').value.trim();
+            if (!matrixText) return null;
+
+            const rows = matrixText.split('\n');
+            const matrix = rows.map(row => row.split(',').map(val => parseFloat(val.trim())));
+            return matrix;
+        }
+
+        // Run Monte Carlo simulation
+        function runMonteCarloSimulation() {
+            // Parse correlation matrix
+            correlationMatrix = parseCorrelationMatrix();
+
+            // Get number of simulations
+            let numSimulations = parseInt(document.getElementById('numSimulations').value);
+            if (quickMode.checked) {
+                numSimulations = Math.min(numSimulations, 10000);
+            }
+
+            // Filter enabled variables
+            const enabledVariables = variables.filter(v => v.enabled);
+
+            // Generate correlated random samples
+            const results = monteCarloSimulation(enabledVariables, numSimulations, correlationMatrix);
+
+            // Store results
+            simulationResults = results;
+            scenarios[currentScenarioIndex] = {
+                name: `Scenario ${currentScenarioIndex + 1}`,
+                variables: [...enabledVariables],
+                results: [...results],
+                numSimulations: numSimulations,
+                correlationMatrix: correlationMatrix
+            };
+
+            // Display results
+            displayResults(results);
+
+            // Show export options
+            exportOptions.classList.remove('hidden');
+
+            // If comparison is requested, run additional scenarios
+            const numComparisons = parseInt(comparisonScenarios.value);
+            if (numComparisons > 1) {
+                runComparisonScenarios(numComparisons - 1);
+            }
+        }
+
+        // Run additional scenarios for comparison
+        function runComparisonScenarios(numAdditional) {
+            const originalNumSimulations = parseInt(document.getElementById('numSimulations').value);
+            const originalQuickMode = quickMode.checked;
+
+            for (let i = 0; i < numAdditional; i++) {
+                currentScenarioIndex++;
+                // Vary parameters slightly for comparison
+                const variedVariables = variables.map(v => ({
+                    ...v,
+                    mostLikely: v.mostLikely * (0.9 + Math.random() * 0.2)
+                }));
+
+                let numSimulations = originalNumSimulations;
+                if (originalQuickMode) {
+                    numSimulations = Math.min(numSimulations, 10000);
+                }
+
+                const results = monteCarloSimulation(variedVariables.filter(v => v.enabled), numSimulations, correlationMatrix);
+
+                scenarios[currentScenarioIndex] = {
+                    name: `Scenario ${currentScenarioIndex + 1}`,
+                    variables: [...variedVariables.filter(v => v.enabled)],
+                    results: [...results],
+                    numSimulations: numSimulations,
+                    correlationMatrix: correlationMatrix
+                };
+            }
+
+            // Display comparison
+            displayComparison();
+        }
+
+        // Monte Carlo simulation core function
+        function monteCarloSimulation(variables, numSimulations, correlationMatrix) {
+            const results = [];
+
+            // Generate Cholesky decomposition for correlated sampling
+            let cholesky = null;
+            if (correlationMatrix) {
+                cholesky = computeCholesky(correlationMatrix);
+            }
+
+            for (let i = 0; i < numSimulations; i++) {
+                let sum = 0;
+                const sampleValues = [];
+
+                // Generate correlated random values for each variable
+                for (let j = 0; j < variables.length; j++) {
+                    const varObj = variables[j];
+                    let value;
+
+                    if (cholesky) {
+                        // Generate correlated random values
+                        const uncorrelated = Array(variables.length).fill().map(() => Math.random());
+                        const correlated = applyCholesky(uncorrelated, cholesky);
+                        const normal = correlated.map(v => inverseNormalCDF(v));
+                        value = getValueFromDistribution(varObj, normal[j]);
+                    } else {
+                        // Generate independent random value
+                        value = getRandomValue(varObj);
+                    }
+
+                    sampleValues.push(value);
+                    sum += value;
+                }
+
+                // Store the average of all variables as the result for this simulation
+                results.push(sum / variables.length);
+            }
+
+            return results;
+        }
+
+        // Get a random value based on the variable's distribution
+        function getRandomValue(varObj) {
+            const { distribution, min, max, mostLikely } = varObj;
+
+            switch(distribution) {
+                case 'normal':
+                    const mean = (min + max) / 2;
+                    const stdDev = (max - min) / 6; // Approximation for normal distribution
+                    return normalRandom(mean, stdDev);
+                case 'uniform':
+                    return min + Math.random() * (max - min);
+                case 'pert':
+                    return pertRandom(min, mostLikely, max);
+                case 'triangular':
+                default:
+                    return triangularRandom(min, mostLikely, max);
+            }
+        }
+
+        // Get a value from distribution using a normal random variate
+        function getValueFromDistribution(varObj, normalVariate) {
+            const { distribution, min, max, mostLikely } = varObj;
+
+            switch(distribution) {
+                case 'normal':
+                    const mean = (min + max) / 2;
+                    const stdDev = (max - min) / 6;
+                    return mean + normalVariate * stdDev;
+                case 'uniform':
+                    return min + normalVariate * (max - min);
+                case 'pert':
+                    return pertFromNormal(min, mostLikely, max, normalVariate);
+                case 'triangular':
+                default:
+                    return triangularFromNormal(min, mostLikely, max, normalVariate);
+            }
+        }
+
+        // Triangular distribution random value
+        function triangularRandom(min, mode, max) {
+            const u = Math.random();
+            const c = (mode - min) / (max - min);
+            if (u <= c) {
+                return min + Math.sqrt(u * (max - min) * (mode - min));
+            } else {
+                return max - Math.sqrt((1 - u) * (max - min) * (max - mode));
+            }
+        }
+
+        // Triangular distribution from normal variate
+        function triangularFromNormal(min, mode, max, normalVariate) {
+            // Approximate triangular distribution using inverse CDF
+            // This is a simplified approach
+            const u = normalVariate;
+            const c = (mode - min) / (max - min);
+            if (u <= c) {
+                return min + Math.sqrt(u * (max - min) * (mode - min));
+            } else {
+                return max - Math.sqrt((1 - u) * (max - min) * (max - mode));
+            }
+        }
+
+        // PERT distribution random value
+        function pertRandom(min, mode, max) {
+            const u = Math.random();
+            const mean = (min + 4 * mode + max) / 6;
+            const stdDev = (max - min) / 6;
+            // Using normal approximation for PERT
+            return normalRandom(mean, stdDev);
+        }
+
+        // PERT distribution from normal variate
+        function pertFromNormal(min, mode, max, normalVariate) {
+            const mean = (min + 4 * mode + max) / 6;
+            const stdDev = (max - min) / 6;
+            return mean + normalVariate * stdDev;
+        }
+
+        // Normal distribution random value using Box-Muller transform
+        function normalRandom(mean = 0, stdDev = 1) {
+            let u = 0, v = 0;
+            while(u === 0) u = Math.random(); // Converting [0,1) to (0,1)
+            while(v === 0) v = Math.random();
+            const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+            return z * stdDev + mean;
+        }
+
+        // Inverse of standard normal cumulative distribution function
+        function inverseNormalCDF(p) {
+            // Abramowitz and Stegun approximation
+            const a1 = -3.969683028665376e+01;
+            const a2 =  2.209460984245205e+02;
+            const a3 = -2.759285104469687e+02;
+            const a4 =  1.383577518672690e+02;
+            const a5 = -3.066479806614716e+01;
+            const a6 =  2.506628277459239e+00;
+
+            const b1 = -5.447609879822406e+01;
+            const b2 =  1.615858368580409e+02;
+            const b3 = -1.556989798598866e+02;
+            const b4 =  6.680131188771972e+01;
+            const b5 = -1.328068155288572e+01;
+
+            const c1 = -7.784894002430293e-03;
+            const c2 = -3.223964580411365e-01;
+            const c3 = -2.400758277161838e+00;
+            const c4 = -2.549732539343734e+00;
+            const c5 =  4.374664141464968e+00;
+            const c6 =  2.938163982698783e+00;
+
+            const d1 =  7.784695709041462e-03;
+            const d2 =  3.224671290700398e-01;
+            const d3 =  2.445134137142996e+00;
+            const d4 =  3.754408661907416e+00;
+
+            if (p < 0.02425) {
+                const q = Math.sqrt(-2 * Math.log(p));
+                return (((((c1 * q + c2) * q + c3) * q + c4) * q + c5) * q + c6) /
+                       ((((d1 * q + d2) * q + d3) * q + d4) * q + 1);
+            } else if (p <= 0.97575) {
+                const q = p - 0.5;
+                const r = q * q;
+                return (((((a1 * r + a2) * r + a3) * r + a4) * r + a5) * r + a6) * q /
+                       (((((b1 * r + b2) * r + b3) * r + b4) * r + b5) * r + 1);
+            } else {
+                const q = Math.sqrt(-2 * Math.log(1 - p));
+                return -(((((c1 * q + c2) * q + c3) * q + c4) * q + c5) * q + c6) /
+                         ((((d1 * q + d2) * q + d3) * q + d4) * q + 1));
+            }
+        }
+
+        // Compute Cholesky decomposition for correlation matrix
+        function computeCholesky(matrix) {
+            const n = matrix.length;
+            const cholesky = Array(n).fill().map(() => Array(n).fill(0));
+
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j <= i; j++) {
+                    let sum = 0;
+                    for (let k = 0; k < j; k++) {
+                        sum += cholesky[i][k] * cholesky[j][k];
+                    }
+
+                    if (i === j) {
+                        // Diagonal element
+                        cholesky[i][j] = Math.sqrt(matrix[i][i] - sum);
+                    } else {
+                        // Off-diagonal element
+                        cholesky[i][j] = (1.0 / cholesky[j][j] * (matrix[i][j] - sum));
+                    }
+                }
+            }
+
+            return cholesky;
+        }
+
+        // Apply Cholesky decomposition to uncorrelated random variables
+        function applyCholesky(uncorrelated, cholesky) {
+            const n = cholesky.length;
+            const correlated = Array(n).fill(0);
+
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j < n; j++) {
+                    correlated[i] += cholesky[i][j] * uncorrelated[j];
+                }
+            }
+
+            return correlated;
+        }
+
+        // Display simulation results
+        function displayResults(results) {
+            // Calculate summary statistics
+            const stats = calculateStatistics(results);
+
+            // Update summary table
+            summaryTable.innerHTML = `
+                <tr><td>Number of Simulations</td><td>${results.length}</td></tr>
+                <tr><td>Mean</td><td>${stats.mean.toFixed(2)}</td></tr>
+                <tr><td>Median</td><td>${stats.median.toFixed(2)}</td></tr>
+                <tr><td>Standard Deviation</td><td>${stats.stdDev.toFixed(2)}</td></tr>
+                <tr><td>Minimum</td><td>${stats.min.toFixed(2)}</td></tr>
+                <tr><td>Maximum</td><td>${stats.max.toFixed(2)}</td></tr>
+                <tr><td>5th Percentile</td><td>${stats.percentile5.toFixed(2)}</td></tr>
+                <tr><td>95th Percentile</td><td>${stats.percentile95.toFixed(2)}</td></tr>
+            `;
+
+            // Show results section
+            resultsSummary.classList.remove('hidden');
+
+            // Create or update charts
+            createHistogram(results, stats);
+            createCumulativeChart(results, stats);
+            createTornadoChart(variables, results);
+        }
+
+        // Calculate summary statistics
+        function calculateStatistics(results) {
+            const sorted = [...results].sort((a, b) => a - b);
+            const n = sorted.length;
+            const mean = sorted.reduce((a, b) => a + b, 0) / n;
+            const median = n % 2 === 0 ?
+                (sorted[n/2 - 1] + sorted[n/2]) / 2 :
+                sorted[Math.floor(n/2)];
+            const min = sorted[0];
+            const max = sorted[n - 1];
+            const percentile5 = sorted[Math.floor(n * 0.05)];
+            const percentile95 = sorted[Math.floor(n * 0.95)];
+            const variance = sorted.reduce((sq, x) => sq + Math.pow(x - mean, 2), 0) / n;
+            const stdDev = Math.sqrt(variance);
+
+            return { mean, median, min, max, percentile5, percentile95, stdDev };
+        }
+
+        // Create histogram chart
+        function createHistogram(results, stats) {
+            const ctx = document.getElementById('histogramChart').getContext('2d');
+
+            // Bin the results
+            const binCount = Math.min(20, Math.max(5, Math.floor(results.length / 100)));
+            const binSize = (stats.max - stats.min) / binCount;
+            const bins = Array(binCount).fill(0);
+            const binLabels = [];
+
+            for (let i = 0; i < binCount; i++) {
+                binLabels.push((stats.min + i * binSize).toFixed(1) + '-' +
+                              (stats.min + (i + 1) * binSize).toFixed(1));
+            }
+
+            results.forEach(value => {
+                const binIndex = Math.min(Math.floor((value - stats.min) / binSize), binCount - 1);
+                bins[binIndex]++;
+            });
+
+            // Destroy previous chart if it exists
+            if (charts.histogram) {
+                charts.histogram.destroy();
+            }
+
+            // Create new chart
+            charts.histogram = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: binLabels,
+                    datasets: [{
+                        label: 'Frequency',
+                        data: bins,
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Frequency'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Value'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Probability Distribution (Histogram)'
+                        },
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create cumulative distribution chart
+        function createCumulativeChart(results, stats) {
+            const ctx = document.getElementById('cumulativeChart').getContext('2d');
+
+            // Sort results and calculate cumulative probabilities
+            const sorted = [...results].sort((a, b) => a - b);
+            const cumulative = sorted.map((value, i) => ({
+                x: value,
+                y: (i + 1) / sorted.length
+            }));
+
+            // Destroy previous chart if it exists
+            if (charts.cumulative) {
+                charts.cumulative.destroy();
+            }
+
+            // Create new chart
+            charts.cumulative = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'Cumulative Probability',
+                        data: cumulative,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderWidth: 2,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 1,
+                            title: {
+                                display: true,
+                                text: 'Cumulative Probability'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Value'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Cumulative Probability Curve'
+                        },
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create tornado chart for sensitivity analysis
+        function createTornadoChart(variables, results) {
+            const ctx = document.getElementById('tornadoChart').getContext('2d');
+
+            // For simplicity, we'll use the variable ranges as sensitivity measures
+            // In a real implementation, you would perform proper sensitivity analysis
+            const sensitivityData = variables.map(v => ({
+                name: v.name,
+                range: v.max - v.min,
+                min: v.min,
+                max: v.max
+            })).sort((a, b) => b.range - a.range);
+
+            // Destroy previous chart if it exists
+            if (charts.tornado) {
+                charts.tornado.destroy();
+            }
+
+            // Create new chart
+            charts.tornado = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sensitivityData.map(d => d.name),
+                    datasets: [{
+                        label: 'Range',
+                        data: sensitivityData.map(d => d.range),
+                        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Range (Max - Min)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Variables'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Sensitivity Analysis (Tornado Chart)'
+                        },
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Display comparison of multiple scenarios
+        function displayComparison() {
+            comparisonTable.classList.remove('hidden');
+
+            // Update comparison table
+            const tableBody = comparisonTable.getElementsByTagName('tbody')[0];
+            tableBody.innerHTML = '';
+
+            scenarios.forEach(scenario => {
+                const stats = calculateStatistics(scenario.results);
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${scenario.name}</td>
+                    <td>${stats.mean.toFixed(2)}</td>
+                    <td>${stats.median.toFixed(2)}</td>
+                    <td>${stats.percentile5.toFixed(2)}</td>
+                    <td>${stats.percentile95.toFixed(2)}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            // Create comparison chart
+            createComparisonChart();
+        }
+
+        // Create comparison chart
+        function createComparisonChart() {
+            const ctx = document.getElementById('comparisonChart').getContext('2d');
+
+            // Prepare data for each scenario
+            const datasets = scenarios.map(scenario => {
+                const stats = calculateStatistics(scenario.results);
+                return {
+                    label: scenario.name,
+                    data: [stats.mean],
+                    borderColor: getRandomColor(),
+                    backgroundColor: getRandomColor(0.2),
+                    borderWidth: 2
+                };
+            });
+
+            // Destroy previous chart if it exists
+            if (charts.comparison) {
+                charts.comparison.destroy();
+            }
+
+            // Create new chart
+            charts.comparison = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Mean Value'],
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Value'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Scenario'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Multi-Scenario Comparison'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Helper function to generate random colors for charts
+        function getRandomColor(alpha = 1) {
+            const r = Math.floor(Math.random() * 255);
+            const g = Math.floor(Math.random() * 255);
+            const b = Math.floor(Math.random() * 255);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+
+        // Save scenario to local storage
+        function saveScenarioToLocalStorage() {
+            const scenarioName = prompt('Enter a name for this scenario:', `Scenario ${scenarios.length + 1}`);
+            if (!scenarioName) return;
+
+            const scenario = {
+                name: scenarioName,
+                variables: [...variables],
+                results: [...simulationResults],
+                numSimulations: parseInt(document.getElementById('numSimulations').value),
+                correlationMatrix: correlationMatrix,
+                timestamp: new Date().toISOString()
+            };
+
+            // Get existing scenarios from local storage
+            const savedScenarios = JSON.parse(localStorage.getItem('monteCarloScenarios') || '[]');
+            savedScenarios.push(scenario);
+
+            // Save back to local storage
+            localStorage.setItem('monteCarloScenarios', JSON.stringify(savedScenarios));
+
+            alert(`Scenario "${scenarioName}" saved successfully!`);
+        }
+
+        // Load scenario from local storage
+        function loadScenarioFromLocalStorage() {
+            const savedScenarios = JSON.parse(localStorage.getItem('monteCarloScenarios') || '[]');
+            if (savedScenarios.length === 0) {
+                alert('No saved scenarios found.');
+                return;
+            }
+
+            // Create a simple selection dialog
+            const scenarioNames = savedScenarios.map((s, i) => `${i + 1}: ${s.name} (${new Date(s.timestamp).toLocaleString()})`);
+            const selection = prompt('Select a scenario to load:\n\n' + scenarioNames.join('\n') + '\n\nEnter the number:');
+
+            if (!selection) return;
+
+            const index = parseInt(selection) - 1;
+            if (isNaN(index) || index < 0 || index >= savedScenarios.length) {
+                alert('Invalid selection.');
+                return;
+            }
+
+            const scenario = savedScenarios[index];
+            variables = [...scenario.variables];
+            numVariables.value = variables.length;
+            document.getElementById('numSimulations').value = scenario.numSimulations;
+            document.getElementById('correlationMatrix').value =
+                scenario.correlationMatrix ?
+                scenario.correlationMatrix.map(row => row.join(',')).join('\n') :
+                '';
+
+            renderVariables();
+            simulationResults = [...scenario.results];
+            displayResults(simulationResults);
+
+            alert(`Scenario "${scenario.name}" loaded successfully!`);
+        }
+
+        // Export results to CSV
+        function exportResultsToCSV() {
+            if (!simulationResults || simulationResults.length === 0) {
+                alert('No simulation results to export.');
+                return;
+            }
+
+            // Calculate statistics
+            const stats = calculateStatistics(simulationResults);
+
+            // Prepare CSV content
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += [
+                ['Monte Carlo Simulation Results', ''],
+                ['Number of Simulations', simulationResults.length],
+                ['Mean', stats.mean.toFixed(4)],
+                ['Median', stats.median.toFixed(4)],
+                ['Standard Deviation', stats.stdDev.toFixed(4)],
+                ['Minimum', stats.min.toFixed(4)],
+                ['Maximum', stats.max.toFixed(4)],
+                ['5th Percentile', stats.percentile5.toFixed(4)],
+                ['95th Percentile', stats.percentile95.toFixed(4)],
+                [],
+                ['Simulation Results']
+            ].map(row => row.join(',')).join('\n');
+
+            csvContent += '\n' + simulationResults.join('\n');
+
+            // Create download link
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', 'monte_carlo_results.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Export charts to PNG
+        function exportChartsToPNG() {
+            if (!charts.histogram) {
+                alert('No charts to export. Run a simulation first.');
+                return;
+            }
+
+            // Export each chart
+            ['histogram', 'cumulative', 'tornado'].forEach(chartType => {
+                const link = document.createElement('a');
+                link.download = `${chartType}_chart.png`;
+                link.href = charts[chartType].toBase64Image();
+                link.click();
+            });
+        }
+
+        // Toggle dark mode
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isDarkMode);
+        }
+
+        // Check for dark mode preference
+        function checkDarkModePreference() {
+            const darkMode = localStorage.getItem('darkMode') === 'true';
+            if (darkMode) {
+                document.body.classList.add('dark-mode');
+            }
+        }
+
+        // Initialize the app
+        init();
+    </script>
+</body>
+</html>
