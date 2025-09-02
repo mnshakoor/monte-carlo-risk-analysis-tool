@@ -44,12 +44,17 @@
   body{
     margin:0; background:var(--bg); color:var(--text); font:15px/1.45 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
   }
+  /* Layout: stack configuration panel on top of the results panel.  
+     Using a single column grid lets the user scroll vertically from inputs to outputs. */
   .app{
-    display:grid; grid-template-columns: 360px 1fr; gap:18px; padding:18px; box-sizing:border-box;
+    display:grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    gap:18px;
+    padding:18px;
+    box-sizing:border-box;
   }
-  @media (max-width: 1080px){
-    .app{ grid-template-columns:1fr; }
-  }
+  /* When the viewport is narrow, this layout already stacks panels vertically. No special media query needed. */
   .panel{
     background:var(--panel); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow);
   }
@@ -420,7 +425,8 @@ function newFactorRow(f={name:"Factor_"+(factorBody.children.length+1), dist:"PE
       </div>
     </td>
     <td><input class="f-weight" type="number" step="any" value="${f.weight??1}"></td>
-    <td><input class="f-notes" type="text" value="${f.notes??""}"></td>
+    <!-- Use a textarea for the notes field to allow long descriptions to wrap. -->
+    <td><textarea class="f-notes" rows="2">${f.notes ?? ""}</textarea></td>
     <td class="center"><button class="btn secondary btn-del">✖</button></td>
   `;
   tr.querySelector(".btn-del").addEventListener("click", ()=>{ tr.remove(); buildCorrMatrix(); refreshSweepFactorList(); });
@@ -819,18 +825,32 @@ function mkHistChart(data, bins=40){
   });
 }
 function mkCdfChart(sorted){
+  // Destroy existing chart if present
   if(cdfChart) cdfChart.destroy();
-  const n=sorted.length;
-  const xs=[], ys=[];
-  const step = Math.max(1, Math.floor(n/200));
-  for(let i=0;i<n;i+=step){
-    xs.push(sorted[i]); ys.push(i/(n-1));
+  const n = sorted.length;
+  const xs = [], ys = [];
+  // Sample at most 200 points to reduce rendering cost
+  const step = Math.max(1, Math.floor(n / 200));
+  for (let i = 0; i < n; i += step) {
+    xs.push(sorted[i]);
+    ys.push(i / (n - 1));
   }
-  xs.push(sorted[n-1]); ys.push(1);
-  cdfChart = new Chart($("#cdfChart"),{
-    type:"line",
-    data:{ labels: xs, datasets:[{ label:"CDF", data: ys, fill:false }]},
-    options:{ maintainAspectRatio:false, parsing:false, scales:{ x:{ type:"linear"}, y:{ min:0, max:1 } } }
+  // Ensure the last point is included
+  xs.push(sorted[n - 1]);
+  ys.push(1);
+  // Build data objects with explicit x and y so the linear scale can interpret them correctly
+  const dataPoints = xs.map((x, i) => ({ x, y: ys[i] }));
+  cdfChart = new Chart($("#cdfChart"), {
+    type: "line",
+    data: { datasets: [{ label: "CDF", data: dataPoints, fill: false }] },
+    options: {
+      maintainAspectRatio: false,
+      parsing: false,
+      scales: {
+        x: { type: "linear" },
+        y: { min: 0, max: 1 }
+      }
+    }
   });
 }
 function mkGaugeChart(prob){
